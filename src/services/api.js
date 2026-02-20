@@ -1,86 +1,141 @@
-import { MOCK_PROPERTIES } from '../data/properties.js';
-import { MOCK_REVIEWS } from '../data/reviews.js';
-
-// Simulate network latency (e.g. 800ms)
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+import { supabase } from './supabase';
 
 export const api = {
     // ---- PROPERTIES ----
 
     // Fetch all properties
     getProperties: async () => {
-        await delay(800);
-        return [...MOCK_PROPERTIES];
+        const { data, error } = await supabase.from('properties').select('*');
+        if (error) {
+            console.error("Error fetching properties:", error);
+            throw error;
+        }
+        return data;
     },
 
     // Fetch a single property by ID
     getPropertyById: async (id) => {
-        await delay(600);
-        const property = MOCK_PROPERTIES.find(p => p === id || p.id === id); // Handle int or string
-        if (!property) throw new Error("Property not found");
-        return { ...property };
+        const { data, error } = await supabase.from('properties').select('*').eq('id', id).single();
+        if (error) throw error;
+        return data;
     },
 
     // Fetch similar properties
     getSimilarProperties: async (id, type) => {
-        await delay(600);
-        const similar = MOCK_PROPERTIES.filter(p => prev => p.id !== id && p.type === type).slice(0, 3);
-        if (similar.length > 0) return similar;
-        return MOCK_PROPERTIES.filter(p => p.id !== id).slice(0, 3);
+        let { data, error } = await supabase
+            .from('properties')
+            .select('*')
+            .neq('id', id)
+            .eq('type', type)
+            .limit(3);
+
+        if (error) throw error;
+
+        // Fallback if not enough similar type
+        if (!data || data.length === 0) {
+            const fallback = await supabase.from('properties').select('*').neq('id', id).limit(3);
+            return fallback.data || [];
+        }
+        return data;
     },
 
     // ---- REVIEWS ----
 
     // Fetch reviews for a specific property
     getPropertyReviews: async (propertyId) => {
-        await delay(500);
-        return MOCK_REVIEWS[propertyId] || [];
+        const { data, error } = await supabase.from('reviews').select('*').eq('property_id', propertyId);
+        if (error) throw error;
+        return data || [];
     },
 
     // ---- AUTH / USERS ----
 
-    // Simulate login
+    // Real Supabase login
     login: async (email, password) => {
-        await delay(1000);
-        if (email && password) {
-            return {
-                id: 'usr_123',
-                name: email.split('@')[0],
-                email: email,
-                initials: email.charAt(0).toUpperCase()
-            };
-        }
-        throw new Error("Invalid credentials");
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        return {
+            id: data.user.id,
+            name: data.user.user_metadata?.name || email.split('@')[0],
+            email: data.user.email,
+            initials: (data.user.user_metadata?.name || email).charAt(0).toUpperCase()
+        };
     },
 
-    // Simulate signup
+    // Real Supabase signup
     signup: async (name, email, password) => {
-        await delay(1000);
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: { name }
+            }
+        });
+        if (error) throw error;
         return {
-            id: 'usr_456',
+            id: data.user.id,
             name: name || email.split('@')[0],
-            email: email,
+            email: data.user.email,
             initials: (name || email).charAt(0).toUpperCase()
         };
+    },
+
+    // Get current session user
+    getCurrentUser: async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        return {
+            id: user.id,
+            name: user.user_metadata?.name || user.email.split('@')[0],
+            email: user.email,
+            initials: (user.user_metadata?.name || user.email).charAt(0).toUpperCase()
+        };
+    },
+
+    // Sign out
+    logout: async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
     },
 
     // ---- BOOKINGS ----
 
     // Fetch user bookings
     getUserBookings: async (userId) => {
-        await delay(800);
-        // Currently handled in App state, but a real API would return an array here
-        return [];
+        const { data, error } = await supabase
+            .from('bookings')
+            .select('*, properties(*)')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
     },
 
     // Submit a new booking
     createBooking: async (bookingDetails) => {
-        await delay(1200);
-        return {
-            ...bookingDetails,
-            bookingId: Math.random().toString(36).substr(2, 9).toUpperCase(),
-            date: new Date().toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' }),
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("You must be logged in to book.");
+
+        const payload = {
+            user_id: user.id,
+            property_id: bookingDetails.id,
+            check_in: bookingDetails.checkInStr || new Date().toISOString(),
+            check_out: bookingDetails.checkOutStr || new Date(Date.now() + 86400000).toISOString(),
+            rooms: bookingDetails.rooms || 1,
+            total_price: bookingDetails.totalPrice || bookingDetails.price,
             status: 'Confirmed'
+        };
+
+        const { data, error } = await supabase.from('bookings').insert([payload]).select().single();
+        if (error) throw error;
+
+        // Return constructed booking object expecting by the frontend App state
+        return {
+            ...bookingDetails, // Original property details
+            ...data,           // Merge with db booking row
+            bookingId: data.id.split('-')[0].toUpperCase(), // Short friendly ID
+            date: new Date(data.created_at).toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })
         };
     }
 };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Eye, EyeOff, MapPin, Loader } from 'lucide-react';
+import { api } from '../services/api.js';
 
 /**
  * AuthModal
@@ -25,7 +26,7 @@ export default function AuthModal({ onClose, onAuth, initialTab = 'login' }) {
 
     const isValidEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
@@ -39,10 +40,14 @@ export default function AuthModal({ onClose, onAuth, initialTab = 'login' }) {
                 return;
             }
             setLoading(true);
-            setTimeout(() => {
+            try {
+                const user = await api.login(form.email, form.password);
+                onAuth(user);
+            } catch (err) {
+                setError(err.message || 'Failed to sign in. Please check your credentials.');
+            } finally {
                 setLoading(false);
-                onAuth({ name: form.email.split('@')[0], email: form.email, initials: form.email.slice(0, 2).toUpperCase() });
-            }, 1200);
+            }
         } else {
             if (!form.name || !form.email || !form.password || !form.confirm) {
                 setError('Please fill in all required fields.');
@@ -61,11 +66,14 @@ export default function AuthModal({ onClose, onAuth, initialTab = 'login' }) {
                 return;
             }
             setLoading(true);
-            setTimeout(() => {
+            try {
+                const user = await api.signup(form.name, form.email, form.password);
+                onAuth(user);
+            } catch (err) {
+                setError(err.message || 'Failed to create account. Please try again.');
+            } finally {
                 setLoading(false);
-                const initials = form.name.trim().split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?';
-                onAuth({ name: form.name, email: form.email, phone: form.phone, initials });
-            }, 1400);
+            }
         }
     };
 

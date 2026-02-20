@@ -27,10 +27,18 @@ export default function App() {
     useEffect(() => {
         const fetchGlobalData = async () => {
             try {
-                const data = await api.getProperties();
+                const [data, currentUser] = await Promise.all([
+                    api.getProperties(),
+                    api.getCurrentUser()
+                ]);
                 setProperties(data);
+                if (currentUser) {
+                    setUser(currentUser);
+                    const userBookings = await api.getUserBookings(currentUser.id);
+                    setMyBookings(userBookings);
+                }
             } catch (err) {
-                console.error("Failed to fetch global properties", err);
+                console.error("Failed to fetch global data", err);
             } finally {
                 setIsLoading(false);
             }
@@ -99,28 +107,29 @@ export default function App() {
         setShowBookingModal(true);
     };
 
-    const confirmBooking = () => {
+    const confirmBooking = async () => {
         const property = properties.find(p => p.id === activePropertyId);
-
-        // Use details from the PropertyPage booking widget if they exist, otherwise fallback securely
-        const nightsLocal = bookingData?.checkIn && bookingData?.checkOut ? Math.round((bookingData.checkOut - bookingData.checkIn) / (1000 * 60 * 60 * 24)) : 1;
         const totalP = bookingData?.totalPrice || (property ? property.price + 450 : 0);
-
-        const newBooking = {
+        const newBookingPayload = {
             ...property,
-            bookingId: Math.random().toString(36).substr(2, 9).toUpperCase(),
-            date: new Date().toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' }),
-            status: 'Confirmed',
-            checkIn: bookingData?.checkIn ? bookingData.checkIn.toLocaleDateString() : 'N/A',
-            checkOut: bookingData?.checkOut ? bookingData.checkOut.toLocaleDateString() : 'N/A',
+            checkInStr: bookingData?.checkIn ? bookingData.checkIn.toLocaleDateString('en-CA') : null,
+            checkOutStr: bookingData?.checkOut ? bookingData.checkOut.toLocaleDateString('en-CA') : null,
             rooms: bookingData?.rooms || 1,
-            totalPrice: totalP
+            totalPrice: totalP,
         };
-        setMyBookings(prev => [...prev, newBooking]);
-        setLastBooking(newBooking);
-        setShowBookingModal(false);
-        setBookingData(null);
-        navigateTo('confirmation');
+
+        try {
+            const confirmedBooking = await api.createBooking(newBookingPayload);
+            setMyBookings(prev => [confirmedBooking, ...prev]);
+            setLastBooking(confirmedBooking);
+            setShowBookingModal(false);
+            setBookingData(null);
+            navigateTo('confirmation');
+        } catch (err) {
+            console.error("Failed to book:", err);
+            showToast("Failed to book the property. Please try again.");
+            setShowBookingModal(false);
+        }
     };
 
     const handleAuth = (userData) => {
@@ -131,8 +140,10 @@ export default function App() {
         showToast(`Welcome back, ${userData.name}! 👋`);
     };
 
-    const handleSignOut = () => {
+    const handleSignOut = async () => {
+        await api.logout();
         setUser(null);
+        setMyBookings([]);
         navigateTo('home');
         showToast('You\u2019ve been signed out');
     };
