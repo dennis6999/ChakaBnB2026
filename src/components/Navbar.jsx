@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Search, User, Home, Heart, History, LogIn } from 'lucide-react';
+import { MapPin, Search, User, Home, Heart, History, LogIn, PlusCircle } from 'lucide-react';
 
 /**
  * Mobile-aware Navbar with fixed bottom navigation for small screens.
@@ -39,18 +39,26 @@ export default function Navbar({ navigateTo, bookingCount, user, onAuthClick, on
                             <Search className="w-4 h-4" /> Explore
                         </button>
                         {user ? (
-                            <button
-                                onClick={() => go('profile')}
-                                className="bg-emerald-900 text-white px-5 py-2.5 rounded-full hover:bg-emerald-800 transition shadow-md font-semibold flex items-center gap-2"
-                            >
-                                <span className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-xs font-black">{user.initials}</span>
-                                <span>{user.name}</span>
-                                {bookingCount > 0 && (
-                                    <span className="bg-orange-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                                        {bookingCount}
-                                    </span>
-                                )}
-                            </button>
+                            <div className="flex items-center gap-4">
+                                <button
+                                    onClick={() => go('host')}
+                                    className="hidden lg:block text-sm font-bold text-stone-600 hover:text-emerald-900 transition"
+                                >
+                                    Switch to hosting
+                                </button>
+                                <button
+                                    onClick={() => go('profile')}
+                                    className="bg-emerald-900 text-white px-5 py-2.5 rounded-full hover:bg-emerald-800 transition shadow-md font-semibold flex items-center gap-2"
+                                >
+                                    <span className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-xs font-black">{user.initials}</span>
+                                    <span>{user.name}</span>
+                                    {bookingCount > 0 && (
+                                        <span className="bg-orange-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                                            {bookingCount}
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
                         ) : (
                             <button
                                 onClick={onAuthClick}
@@ -72,7 +80,7 @@ export default function Navbar({ navigateTo, bookingCount, user, onAuthClick, on
             <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 z-50 px-2 pb-safe pt-2 shadow-2xl flex justify-around items-center h-[72px]">
                 <button
                     onClick={() => go('search')}
-                    className="flex flex-col items-center justify-center w-16 h-12 text-stone-500 hover:text-emerald-700 transition"
+                    className="flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
                 >
                     <Search className="w-6 h-6 mb-1" />
                     <span className="text-[10px] font-bold">Explore</span>
@@ -80,15 +88,25 @@ export default function Navbar({ navigateTo, bookingCount, user, onAuthClick, on
 
                 <button
                     onClick={() => go('profile')} // Assuming profile handles "Saved" tab
-                    className="flex flex-col items-center justify-center w-16 h-12 text-stone-500 hover:text-emerald-700 transition"
+                    className="flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
                 >
                     <Heart className="w-6 h-6 mb-1" />
                     <span className="text-[10px] font-bold">Saved</span>
                 </button>
 
+                {user && (
+                    <button
+                        onClick={() => go('host')}
+                        className="flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
+                    >
+                        <PlusCircle className="w-6 h-6 mb-1" />
+                        <span className="text-[10px] font-bold">Host</span>
+                    </button>
+                )}
+
                 <button
                     onClick={() => go('profile')} // Assuming profile handles "Trips" tab
-                    className="relative flex flex-col items-center justify-center w-16 h-12 text-stone-500 hover:text-emerald-700 transition"
+                    className="relative flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
                 >
                     <History className="w-6 h-6 mb-1" />
                     <span className="text-[10px] font-bold">Trips</span>
@@ -101,7 +119,7 @@ export default function Navbar({ navigateTo, bookingCount, user, onAuthClick, on
 
                 <button
                     onClick={() => user ? go('profile') : onAuthClick()}
-                    className="flex flex-col items-center justify-center w-16 h-12 text-stone-500 hover:text-emerald-700 transition"
+                    className="flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
                 >
                     {user ? (
                         <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-[10px] font-black mb-1">

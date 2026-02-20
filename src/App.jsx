@@ -15,9 +15,10 @@ import ProfilePage from './pages/ProfilePage.jsx';
 import ConfirmationPage from './pages/ConfirmationPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import SignInPage from './pages/SignInPage.jsx';
+import HostDashboard from './pages/HostDashboard.jsx';
 import { SkeletonPage } from './components/Skeleton.jsx';
 
-const VALID_VIEWS = ['home', 'search', 'property', 'profile', 'confirmation', 'signin', '404'];
+const VALID_VIEWS = ['home', 'search', 'property', 'profile', 'confirmation', 'signin', '404', 'host'];
 
 export default function App() {
     // --- GLOBAL DATA ---
@@ -223,6 +224,12 @@ export default function App() {
                         user={user}
                         onSignOut={handleSignOut}
                         onSignIn={openSignIn}
+                    />
+                )}
+                {currentView === 'host' && (
+                    <HostDashboard
+                        user={user}
+                        navigateTo={navigateTo}
                     />
                 )}
                 {currentView === 'confirmation' && (

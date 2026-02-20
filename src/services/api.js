@@ -39,6 +39,20 @@ export const api = {
         return data;
     },
 
+    // Fetch properties for a specific host
+    getHostProperties: async (hostId) => {
+        const { data, error } = await supabase.from('properties').select('*').eq('host_id', hostId);
+        if (error) throw error;
+        return data || [];
+    },
+
+    // Create a new property
+    createProperty: async (propertyData) => {
+        const { data, error } = await supabase.from('properties').insert([propertyData]).select().single();
+        if (error) throw error;
+        return data;
+    },
+
     // ---- REVIEWS ----
 
     // Fetch reviews for a specific property
@@ -78,6 +92,19 @@ export const api = {
             email: data.user.email,
             initials: (name || email).charAt(0).toUpperCase()
         };
+    },
+
+    // Sign in with Google OAuth
+    signInWithGoogle: async () => {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                // Ensure redirect lands back to the app correctly
+                redirectTo: window.location.origin
+            }
+        });
+        if (error) throw error;
+        // The return isn't needed here as Supabase redirects the browser.
     },
 
     // Get current session user
@@ -137,5 +164,25 @@ export const api = {
             bookingId: data.id.split('-')[0].toUpperCase(), // Short friendly ID
             date: new Date(data.created_at).toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })
         };
+    },
+
+    // ---- STORAGE ----
+
+    // Upload an image to the property-images bucket
+    uploadPropertyImage: async (file, path) => {
+        const { data, error } = await supabase.storage
+            .from('property-images')
+            .upload(path, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('property-images')
+            .getPublicUrl(path);
+
+        return publicUrl;
     }
 };
