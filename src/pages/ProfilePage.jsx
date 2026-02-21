@@ -105,28 +105,28 @@ export default function ProfilePage({ navigateTo, myBookings, favorites, propert
                                         {myBookings.map((booking, idx) => (
                                             <div key={idx} className="flex flex-col sm:flex-row gap-4 p-4 border border-stone-200 rounded-2xl hover:shadow-md transition">
                                                 <img
-                                                    src={booking.image}
-                                                    alt={`Booking: ${booking.name}`}
+                                                    src={booking.properties?.image || booking.image}
+                                                    alt={`Booking: ${booking.properties?.name || booking.name}`}
                                                     loading="lazy"
                                                     className="w-full sm:w-40 h-28 object-cover rounded-xl flex-shrink-0"
                                                 />
                                                 <div className="flex-1 flex flex-col justify-between">
                                                     <div>
                                                         <div className="flex justify-between items-start mb-1 gap-2">
-                                                            <h3 className="font-bold text-lg text-stone-900 leading-tight">{booking.name}</h3>
+                                                            <h3 className="font-bold text-lg text-stone-900 leading-tight">{booking.properties?.name || booking.name}</h3>
                                                             <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-1 rounded flex-shrink-0">
                                                                 {booking.status}
                                                             </span>
                                                         </div>
                                                         <p className="text-sm text-stone-500 flex items-center gap-1 mb-1">
-                                                            <Calendar className="w-4 h-4" /> Booked: {booking.date}
+                                                            <Calendar className="w-4 h-4" /> Booked: {booking.date || new Date(booking.created_at).toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' })}
                                                         </p>
                                                         <p className="text-sm text-stone-500 flex items-center gap-1">
-                                                            <MapPin className="w-4 h-4" /> Chaka, Nyeri
+                                                            <MapPin className="w-4 h-4" /> {booking.properties?.distance || booking.distance || 'Chaka, Nyeri'}
                                                         </p>
                                                     </div>
                                                     <div className="text-xs font-mono text-stone-400 mt-2">
-                                                        ID: {booking.bookingId}
+                                                        ID: {booking.bookingId || booking.id?.split('-')[0]?.toUpperCase()}
                                                     </div>
                                                 </div>
                                             </div>

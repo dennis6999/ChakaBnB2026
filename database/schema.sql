@@ -22,7 +22,9 @@ CREATE TABLE properties (
     host_name TEXT,
     host_joined TEXT,
     image TEXT,
-    gallery TEXT[]
+    gallery TEXT[],
+    latitude NUMERIC,
+    longitude NUMERIC
 );
 
 CREATE TABLE reviews (
@@ -70,7 +72,7 @@ ON bookings FOR SELECT USING (auth.uid() = user_id);
 INSERT INTO properties (
     id, name, type, price, rating, reviews, distance, description, room_info, 
     guests, bedrooms, bathrooms, features, total_rooms, cancellation_policy, 
-    meal_plan, payment_preference, host_name, host_joined, image, gallery
+    meal_plan, payment_preference, host_name, host_joined, image, gallery, latitude, longitude
 ) VALUES 
 (
     1, 'Chaka Ranch Tented Camp', 'Camp', 10500, 9.2, 128, '2.5 km from center', 
@@ -80,7 +82,8 @@ INSERT INTO properties (
     10, 'Free cancellation', 'Breakfast included', 'No prepayment needed - pay at the property', 
     'David', '2018', 
     'https://images.unsplash.com/photo-1534889156217-d643df14f14a?auto=format&fit=crop&w=800&q=80', 
-    ARRAY['https://images.unsplash.com/photo-1534889156217-d643df14f14a?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80']
+    ARRAY['https://images.unsplash.com/photo-1534889156217-d643df14f14a?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80'],
+    -0.612, 36.98
 ),
 (
     2, 'Muthiga Garden Resort Chaka', 'Resort', 5000, 9.0, 45, '0.8 km from center',
@@ -90,7 +93,8 @@ INSERT INTO properties (
     15, 'Non-refundable', 'Breakfast included', 'Pay at the property', 
     'Sarah & John', '2020', 
     'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80', 
-    ARRAY['https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=800&q=80']
+    ARRAY['https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=800&q=80'],
+    -0.618, 37.01
 ),
 (
     3, 'Lusoi Ranch Resort', 'Resort', 7500, 8.5, 32, '4.2 km from center',
@@ -100,7 +104,8 @@ INSERT INTO properties (
     4, 'Free cancellation', 'Room only', 'No prepayment needed', 
     'Grace', '2019', 
     'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=800&q=80', 
-    ARRAY['https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80']
+    ARRAY['https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'],
+    -0.625, 36.95
 ),
 (
     4, 'Chaka Place Apartments', 'Apartment', 3500, 8.4, 29, '0.5 km from center',
@@ -110,7 +115,8 @@ INSERT INTO properties (
     8, 'Free cancellation', 'Room only', 'Prepayment needed', 
     'Peter', '2021', 
     'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80', 
-    ARRAY['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1502672260266-1c1de2d92004?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=800&q=80']
+    ARRAY['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1502672260266-1c1de2d92004?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=800&q=80'],
+    -0.615, 37.00
 ),
 (
     5, 'Le Pristine Wellness Hotel', 'Hotel', 6000, 8.1, 37, '3.0 km from center',
@@ -120,7 +126,8 @@ INSERT INTO properties (
     20, 'Non-refundable', 'Breakfast included', 'Prepayment needed', 
     'Le Pristine Mgmt', '2015', 
     'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80', 
-    ARRAY['https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=800&q=80']
+    ARRAY['https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=800&q=80'],
+    -0.585, 36.99
 ),
 (
     6, 'The Peak Meadows Hotel', 'Hotel', 4200, 7.7, 41, '1.2 km from center',
@@ -130,7 +137,8 @@ INSERT INTO properties (
     12, 'Free cancellation', 'Breakfast included', 'Pay at the property', 
     'Peak Meadows', '2017', 
     'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80', 
-    ARRAY['https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1584132915807-fd1f5fbc078f?auto=format&fit=crop&w=800&q=80']
+    ARRAY['https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1584132915807-fd1f5fbc078f?auto=format&fit=crop&w=800&q=80'],
+    -0.610, 36.99
 );
 
 -- Reset properties id sequence

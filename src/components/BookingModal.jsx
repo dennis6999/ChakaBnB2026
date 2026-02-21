@@ -11,7 +11,15 @@ export default function BookingModal({ property, onConfirm, onClose }) {
 
     const checkInStr = formatDate(property.checkIn);
     const checkOutStr = property.checkOut ? ` - ${formatDate(property.checkOut)}` : '';
-    const dateRange = property.checkIn ? `${checkInStr}${checkOutStr}` : '1 Night (Flexible)';
+
+    // Calculate nights if dates are provided
+    const nights = property.checkIn && property.checkOut
+        ? Math.round((property.checkOut - property.checkIn) / (1000 * 60 * 60 * 24))
+        : 1;
+
+    const dateRange = property.checkIn
+        ? `${checkInStr}${checkOutStr} (${nights} Night${nights > 1 ? 's' : ''})`
+        : '1 Night (Flexible)';
 
     // Fallback logic in case property.totalPrice wasn't passed 
     const isDynamicBooking = !!property.totalPrice;

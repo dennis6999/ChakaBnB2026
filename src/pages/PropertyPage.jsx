@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     ChevronLeft, MapPin, Star, Share, Heart, Check,
-    Wifi, Coffee, Shield, Wind, ChevronRight, MessageSquare, ChevronDown, Calendar, AlertCircle
+    Wifi, Coffee, Shield, Wind, ChevronRight, MessageSquare, ChevronDown, Calendar, AlertCircle, Home
 } from 'lucide-react';
 import GalleryLightbox from '../components/GalleryLightbox.jsx';
 import ReviewCard from '../components/ReviewCard.jsx';
@@ -19,12 +19,19 @@ const isOverlapping = (start1, end1, start2, end2) => {
     return start1 < end2 && start2 < end1;
 };
 
-export default function PropertyPage({ property, isFavorite, onToggleFavorite, onBook, navigateTo, favorites, toggleFavorite, searchFilters }) {
+export default function PropertyPage({ property, isFavorite, onToggleFavorite, onBook, navigateTo, favorites, toggleFavorite, searchFilters, user }) {
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxIdx, setLightboxIdx] = useState(0);
     const [showContact, setShowContact] = useState(false);
     const [showAllReviews, setShowAllReviews] = useState(false);
     const [shareLabel, setShareLabel] = useState('Share');
+
+    // Review submission state
+    const [reviewRating, setReviewRating] = useState(0);
+    const [reviewHover, setReviewHover] = useState(0);
+    const [reviewComment, setReviewComment] = useState('');
+    const [submittingReview, setSubmittingReview] = useState(false);
+    const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
     // Async Data State
     const [reviews, setReviews] = useState([]);
@@ -117,6 +124,8 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
     const handleBook = () => {
         onBook({ ...property, checkIn, checkOut, rooms, totalPrice });
     };
+
+    const isHost = user && user.id === property.host_id;
 
     return (
         <div className="animate-in fade-in duration-300 pb-20 bg-stone-50">
@@ -238,17 +247,137 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                             </div>
                         </div>
 
-                        {/* Reviews summary */}
-                        <div className="bg-stone-100 rounded-3xl p-8 border border-stone-200 mb-8">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="bg-emerald-900 text-white font-black text-3xl px-4 py-2 rounded-2xl shadow-sm">
+                        {/* Reviews Section */}
+                        <div className="mb-12">
+                            <h3 className="text-xl font-bold text-stone-900 mb-6">
+                                ⭐ Guest Reviews
+                            </h3>
+
+                            {/* Summary score */}
+                            <div className="bg-stone-100 rounded-3xl p-6 border border-stone-200 mb-6 flex items-center gap-4">
+                                <div className="bg-emerald-900 text-white font-black text-4xl px-5 py-3 rounded-2xl shadow">
                                     {property.rating?.toFixed(1)}
                                 </div>
                                 <div>
-                                    <div className="text-2xl font-bold text-stone-900">{property.reviewText}</div>
-                                    <div className="text-stone-500 font-medium">{property.reviews} verified reviews</div>
+                                    <div className="text-xl font-bold text-stone-900">
+                                        {property.rating >= 9 ? 'Exceptional' : property.rating >= 8 ? 'Wonderful' : property.rating >= 7 ? 'Good' : 'Okay'}
+                                    </div>
+                                    <div className="text-stone-500 font-medium">{reviews.length} verified review{reviews.length !== 1 ? 's' : ''}</div>
                                 </div>
                             </div>
+
+                            {/* Individual review cards */}
+                            {loadingDetails ? (
+                                <div className="space-y-4">
+                                    {[1, 2].map(i => <div key={i} className="h-28 bg-stone-100 rounded-2xl animate-pulse" />)}
+                                </div>
+                            ) : reviews.length === 0 ? (
+                                <p className="text-stone-400 italic text-center py-6">No reviews yet — be the first to share your experience!</p>
+                            ) : (
+                                <div className="space-y-4">
+                                    {(showAllReviews ? reviews : reviews.slice(0, 3)).map(r => (
+                                        <div key={r.id} className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
+                                            <div className="flex items-start justify-between gap-4 mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center font-bold text-orange-700 text-sm shrink-0">
+                                                        {r.user_name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-stone-900 text-sm">{r.user_name}</div>
+                                                        <div className="text-stone-400 text-xs">{r.date}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1 bg-emerald-900 text-white text-sm font-black px-2.5 py-1 rounded-xl shrink-0">
+                                                    <Star className="w-3.5 h-3.5 fill-white" />
+                                                    {Number(r.rating).toFixed(1)}
+                                                </div>
+                                            </div>
+                                            <p className="text-stone-600 text-sm leading-relaxed">{r.comment}</p>
+                                        </div>
+                                    ))}
+                                    {reviews.length > 3 && (
+                                        <button
+                                            onClick={() => setShowAllReviews(v => !v)}
+                                            className="w-full text-sm font-bold text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-xl py-3 transition flex items-center justify-center gap-2"
+                                        >
+                                            {showAllReviews ? 'Show less' : `Show all ${reviews.length} reviews`}
+                                            <ChevronDown className={`w-4 h-4 transition-transform ${showAllReviews ? 'rotate-180' : ''}`} />
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Leave a Review Form */}
+                            {user && !reviewSubmitted && (
+                                <div className="mt-8 p-6 bg-white border border-stone-200 rounded-3xl shadow-sm">
+                                    <h4 className="font-bold text-stone-900 mb-4">Leave a Review</h4>
+                                    <div className="flex items-center gap-1 mb-4">
+                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(star => (
+                                            <button
+                                                key={star}
+                                                type="button"
+                                                onClick={() => setReviewRating(star)}
+                                                onMouseEnter={() => setReviewHover(star)}
+                                                onMouseLeave={() => setReviewHover(0)}
+                                                className="transition-transform hover:scale-110"
+                                            >
+                                                <Star
+                                                    className={`w-7 h-7 ${star <= (reviewHover || reviewRating)
+                                                            ? 'fill-orange-400 text-orange-400'
+                                                            : 'text-stone-300'
+                                                        }`}
+                                                />
+                                            </button>
+                                        ))}
+                                        {reviewRating > 0 && (
+                                            <span className="ml-2 font-black text-lg text-stone-800">{reviewRating}/10</span>
+                                        )}
+                                    </div>
+                                    <textarea
+                                        value={reviewComment}
+                                        onChange={e => setReviewComment(e.target.value)}
+                                        rows={3}
+                                        placeholder="Share your experience at this property…"
+                                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-emerald-500 resize-none mb-4"
+                                    />
+                                    <button
+                                        disabled={!reviewRating || !reviewComment.trim() || submittingReview}
+                                        onClick={async () => {
+                                            setSubmittingReview(true);
+                                            try {
+                                                const newReview = await api.submitReview(
+                                                    property.id,
+                                                    user.name,
+                                                    reviewRating,
+                                                    reviewComment.trim()
+                                                );
+                                                setReviews(prev => [newReview, ...prev]);
+                                                setReviewSubmitted(true);
+                                                setReviewRating(0);
+                                                setReviewComment('');
+                                            } catch (err) {
+                                                console.error('Review submission failed:', err);
+                                                alert('Failed to submit review: ' + (err.message || 'Unknown error'));
+                                            } finally {
+                                                setSubmittingReview(false);
+                                            }
+                                        }}
+                                        className="bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-6 py-3 rounded-xl transition"
+                                    >
+                                        {submittingReview ? 'Submitting…' : 'Submit Review'}
+                                    </button>
+                                </div>
+                            )}
+                            {user && reviewSubmitted && (
+                                <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 font-bold flex items-center gap-2">
+                                    <Check className="w-5 h-5" /> Thank you! Your review has been posted.
+                                </div>
+                            )}
+                            {!user && (
+                                <p className="text-sm text-stone-400 mt-6 text-center">
+                                    <span className="font-semibold text-emerald-700 cursor-pointer hover:underline" onClick={() => navigateTo('signin')}>Sign in</span> to leave a review.
+                                </p>
+                            )}
                         </div>
 
                         {/* Contact Host */}
@@ -329,22 +458,29 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                                 </div>
                             ) : null}
 
-                            {!isAvailable && checkIn && checkOut && (
+                            {!isAvailable && checkIn && checkOut && !isHost && (
                                 <div className="mb-4 text-red-600 bg-red-50 p-3 rounded-lg text-sm font-semibold border border-red-200 flex items-start gap-2">
                                     <AlertCircle className="w-5 h-5 shrink-0" />
                                     Only {roomsAvailable} room{roomsAvailable !== 1 ? 's' : ''} available.
                                 </div>
                             )}
 
+                            {isHost && (
+                                <div className="mb-4 text-emerald-800 bg-emerald-50 p-3 rounded-lg text-sm font-semibold border border-emerald-200 flex items-start gap-2">
+                                    <Home className="w-5 h-5 shrink-0" />
+                                    This is your property. You cannot book your own listing.
+                                </div>
+                            )}
+
                             <button
                                 onClick={handleBook}
-                                disabled={!checkIn || !checkOut || !isAvailable}
+                                disabled={!checkIn || !checkOut || !isAvailable || isHost}
                                 className={`w-full font-bold py-4 rounded-xl transition shadow-lg text-lg mb-4 
-                                    ${(!checkIn || !checkOut || !isAvailable)
+                                    ${(!checkIn || !checkOut || !isAvailable || isHost)
                                         ? 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none'
                                         : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'}`}
                             >
-                                I'll Reserve
+                                {isHost ? 'Manage Listing' : "I'll Reserve"}
                             </button>
 
                             <div className="text-center text-sm text-stone-500 font-medium">Takes only 2 minutes</div>
@@ -381,6 +517,9 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                 <ContactHostModal
                     host={property.host || { name: 'Host' }}
                     propertyName={property.name}
+                    propertyId={property.id}
+                    hostId={property.host_id}
+                    guestName={user?.name || 'Guest'}
                     onClose={() => setShowContact(false)}
                 />
             )}
@@ -405,22 +544,26 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                     )}
                 </div>
                 <button
-                    disabled={(!checkIn || !checkOut) ? false : !isAvailable}
+                    disabled={(!checkIn || !checkOut) ? false : !isAvailable || isHost}
                     onClick={() => {
-                        if (!checkIn || !checkOut) {
+                        if (isHost) {
+                            navigateTo('host');
+                        } else if (!checkIn || !checkOut) {
                             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); // Scroll down to widget
                         } else if (isAvailable) {
                             handleBook();
                         }
                     }}
                     className={`font-bold px-6 py-3 text-sm rounded-xl transition shadow-md
-                        ${(!checkIn || !checkOut)
-                            ? 'bg-stone-900 text-white'
-                            : !isAvailable
-                                ? 'bg-stone-300 text-stone-500'
-                                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'}`}
+                        ${isHost
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : (!checkIn || !checkOut)
+                                ? 'bg-stone-900 text-white'
+                                : !isAvailable
+                                    ? 'bg-stone-300 text-stone-500'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'}`}
                 >
-                    {(!checkIn || !checkOut) ? 'Check Dates' : isAvailable ? 'Reserve' : 'Sold Out'}
+                    {isHost ? 'Manage' : (!checkIn || !checkOut) ? 'Check Dates' : isAvailable ? 'Reserve' : 'Sold Out'}
                 </button>
             </div>
         </div>

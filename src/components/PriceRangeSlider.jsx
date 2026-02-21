@@ -31,16 +31,15 @@ export default function PriceRangeSlider({ min, max, value, onChange }) {
                 <span>KES {hi.toLocaleString()}</span>
             </div>
 
-            {/* Track */}
-            <div className="relative h-2 bg-stone-200 rounded-full mb-4">
+            {/* Track and Inputs stacked together */}
+            <div className="relative h-2 bg-stone-200 rounded-full mb-6 flex items-center">
+                {/* Active track color */}
                 <div
                     className="absolute h-2 bg-emerald-600 rounded-full"
                     style={{ left: `${pct(lo)}%`, right: `${100 - pct(hi)}%` }}
                 />
-            </div>
 
-            {/* Range inputs stacked */}
-            <div className="relative">
+                {/* Range inputs overlapping the exact track position */}
                 <input
                     type="range"
                     min={min}
@@ -48,7 +47,7 @@ export default function PriceRangeSlider({ min, max, value, onChange }) {
                     step={500}
                     value={lo}
                     onChange={handleLo}
-                    className="absolute w-full h-2 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-emerald-700 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer"
+                    className="absolute inset-0 w-full appearance-none bg-transparent cursor-pointer pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-[4px] [&::-webkit-slider-thumb]:border-emerald-600 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-grab hover:[&::-webkit-slider-thumb]:scale-110 [&::-webkit-slider-thumb]:transition-transform"
                 />
                 <input
                     type="range"
@@ -57,7 +56,7 @@ export default function PriceRangeSlider({ min, max, value, onChange }) {
                     step={500}
                     value={hi}
                     onChange={handleHi}
-                    className="relative w-full h-2 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-emerald-700 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer"
+                    className="absolute inset-0 w-full appearance-none bg-transparent cursor-pointer pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-[4px] [&::-webkit-slider-thumb]:border-emerald-600 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-grab hover:[&::-webkit-slider-thumb]:scale-110 [&::-webkit-slider-thumb]:transition-transform"
                 />
             </div>
 

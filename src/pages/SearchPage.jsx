@@ -193,7 +193,11 @@ export default function SearchPage({
                         {isLoading ? (
                             <div className="h-[60vh] rounded-3xl bg-stone-200 animate-pulse border border-stone-300"></div>
                         ) : (
-                            <MapView properties={filtered} onNavigate={(id) => navigateTo('property', id)} />
+                            <MapView
+                                properties={filtered}
+                                onNavigate={(id) => navigateTo('property', id)}
+                                locationName={filters?.location || 'Chaka, Nyeri County'}
+                            />
                         )}
                     </div>
                 )}

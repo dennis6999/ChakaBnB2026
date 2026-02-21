@@ -3,9 +3,9 @@ import { MapPin, Search, User, Home, Heart, History, LogIn, PlusCircle } from 'l
 
 /**
  * Mobile-aware Navbar with fixed bottom navigation for small screens.
- * Props: navigateTo, bookingCount, user, onAuthClick, onSignOut
+ * Props: navigateTo, bookingCount, hostBookingCount, user, onAuthClick, onSignOut
  */
-export default function Navbar({ navigateTo, bookingCount, user, onAuthClick, onSignOut }) {
+export default function Navbar({ navigateTo, bookingCount, hostBookingCount = 0, user, onAuthClick, onSignOut }) {
     // We can track active path using window.location.pathname if we used React Router, 
     // but here we just pass a simple active state or rely on App.jsx state if it was passed.
     // For now, we'll let the user tap and just route.
@@ -42,9 +42,14 @@ export default function Navbar({ navigateTo, bookingCount, user, onAuthClick, on
                             <div className="flex items-center gap-4">
                                 <button
                                     onClick={() => go('host')}
-                                    className="hidden lg:block text-sm font-bold text-stone-600 hover:text-emerald-900 transition"
+                                    className="hidden lg:block relative text-sm font-bold text-stone-600 hover:text-emerald-900 transition mr-4"
                                 >
                                     Switch to hosting
+                                    {hostBookingCount > 0 && (
+                                        <span className="absolute -top-1 -right-3 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full border border-white">
+                                            {hostBookingCount}
+                                        </span>
+                                    )}
                                 </button>
                                 <button
                                     onClick={() => go('profile')}
@@ -97,10 +102,15 @@ export default function Navbar({ navigateTo, bookingCount, user, onAuthClick, on
                 {user && (
                     <button
                         onClick={() => go('host')}
-                        className="flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
+                        className="relative flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
                     >
                         <PlusCircle className="w-6 h-6 mb-1" />
                         <span className="text-[10px] font-bold">Host</span>
+                        {hostBookingCount > 0 && (
+                            <span className="absolute top-0 right-2 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full border border-white">
+                                {hostBookingCount}
+                            </span>
+                        )}
                     </button>
                 )}
 

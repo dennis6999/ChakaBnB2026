@@ -152,7 +152,9 @@ export default function DatePicker({ checkIn, checkOut, onChange, onClose }) {
             <div className="flex flex-col sm:flex-row gap-8">
                 {renderMonth(viewYear, viewMonth)}
                 <div className="hidden sm:block w-px bg-stone-100" />
-                {renderMonth(nextY, nextM)}
+                <div className="hidden sm:block">
+                    {renderMonth(nextY, nextM)}
+                </div>
             </div>
 
             {/* Footer */}

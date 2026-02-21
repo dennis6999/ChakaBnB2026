@@ -53,13 +53,42 @@ export const api = {
         return data;
     },
 
+    // Update an existing property
+    updateProperty: async (propertyId, propertyData) => {
+        const { data, error } = await supabase.from('properties').update(propertyData).eq('id', propertyId).select().single();
+        if (error) throw error;
+        return data;
+    },
+
     // ---- REVIEWS ----
 
     // Fetch reviews for a specific property
     getPropertyReviews: async (propertyId) => {
-        const { data, error } = await supabase.from('reviews').select('*').eq('property_id', propertyId);
+        const { data, error } = await supabase.from('reviews').select('*').eq('property_id', propertyId).order('id', { ascending: false });
         if (error) throw error;
         return data || [];
+    },
+
+    // Submit a new review
+    submitReview: async (propertyId, userName, rating, comment) => {
+        const date = new Date().toLocaleDateString('en-KE', { month: 'long', year: 'numeric' });
+        const { data, error } = await supabase
+            .from('reviews')
+            .insert([{ property_id: propertyId, user_name: userName, rating, date, comment }])
+            .select()
+            .single();
+        if (error) throw error;
+
+        // Recalculate avg rating and update the property
+        const { data: allReviews } = await supabase.from('reviews').select('rating').eq('property_id', propertyId);
+        if (allReviews && allReviews.length > 0) {
+            const avg = allReviews.reduce((sum, r) => sum + Number(r.rating), 0) / allReviews.length;
+            await supabase.from('properties').update({
+                rating: Math.round(avg * 10) / 10,
+                reviews: allReviews.length
+            }).eq('id', propertyId);
+        }
+        return data;
     },
 
     // ---- AUTH / USERS ----
@@ -139,6 +168,31 @@ export const api = {
         return data || [];
     },
 
+    // Fetch incoming reservations for a host
+    getHostReservations: async (hostId) => {
+        const { data, error } = await supabase
+            .from('bookings')
+            .select('*, properties!inner(*)')
+            .eq('properties.host_id', hostId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    // Update booking status
+    updateBookingStatus: async (bookingId, status) => {
+        const { data, error } = await supabase
+            .from('bookings')
+            .update({ status })
+            .eq('id', bookingId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
     // Submit a new booking
     createBooking: async (bookingDetails) => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -184,5 +238,25 @@ export const api = {
             .getPublicUrl(path);
 
         return publicUrl;
+    },
+
+    // ---- MESSAGING ----
+
+    // Send a message to a host
+    sendMessage: async (payload) => {
+        const { error } = await supabase.from('messages').insert([payload]);
+        if (error) throw error;
+    },
+
+    // Fetch messages for a host
+    getHostMessages: async (hostId) => {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*, properties(name)')
+            .eq('host_id', hostId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
     }
 };

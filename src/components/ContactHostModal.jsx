@@ -1,19 +1,33 @@
 import React, { useState } from 'react';
 import { X, Send, Loader } from 'lucide-react';
+import { api } from '../services/api.js';
 
 /**
  * ContactHostModal
- * Props: host { name }, propertyName, onClose
+ * Props: host { name }, propertyName, propertyId, hostId, guestName, onClose
  */
-export default function ContactHostModal({ host, propertyName, onClose }) {
+export default function ContactHostModal({ host, propertyName, propertyId, hostId, guestName, onClose }) {
     const [message, setMessage] = useState('');
     const [sent, setSent] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!message.trim()) return;
         setLoading(true);
-        setTimeout(() => { setLoading(false); setSent(true); }, 1200);
+        try {
+            await api.sendMessage({
+                property_id: propertyId,
+                host_id: hostId,
+                guest_name: guestName,
+                message: message.trim()
+            });
+            setSent(true);
+        } catch (err) {
+            console.error("Failed to send message:", err);
+            alert("Failed to send message. Please log in or try again later.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
