@@ -404,10 +404,10 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                         <div className="border border-stone-200 rounded-3xl p-6 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-12">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-800 font-bold text-lg flex-shrink-0">
-                                    {(property.host?.name || 'H').charAt(0)}
+                                    {(property.host_name || 'H').charAt(0)}
                                 </div>
                                 <div>
-                                    <div className="font-bold text-stone-900">{property.host?.name || 'Host'}</div>
+                                    <div className="font-bold text-stone-900">{property.host_name || 'Host'}</div>
                                     <div className="text-sm text-stone-500">Typically responds within an hour</div>
                                 </div>
                             </div>
