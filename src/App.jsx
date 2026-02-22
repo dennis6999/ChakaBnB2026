@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { api } from './services/api.js';
 
 import Navbar from './components/Navbar.jsx';
@@ -22,10 +23,18 @@ import { SkeletonPage } from './components/Skeleton.jsx';
 const VALID_VIEWS = ['home', 'search', 'property', 'profile', 'confirmation', 'signin', '404', 'host', 'inbox'];
 
 export default function App() {
+    return (
+        <BrowserRouter>
+            <AppContent />
+        </BrowserRouter>
+    );
+}
+
+function AppContent() {
     // --- STATE ---
+    const navigate = useNavigate();
     const [properties, setProperties] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [currentView, setCurrentView] = useState(() => localStorage.getItem('currentView') || 'home');
     const [activePropertyId, setActivePropertyId] = useState(() => localStorage.getItem('activePropertyId') || null);
     const [user, setUser] = useState(null);
     const [showAuthModal, setShowAuthModal] = useState(false);
@@ -41,9 +50,9 @@ export default function App() {
     const [bookingData, setBookingData] = useState(null);
     const [profileTab, setProfileTab] = useState(() => localStorage.getItem('activeProfileTab') || 'trips');
 
-    // --- NAVIGATION ---
+    // --- NAVIGATION CONTROLLER ---
+    // This wrapper maintains compatibility with all our child components that still call navigateTo('search', id, tab)
     const navigateTo = (view, propertyId = null, tab = null) => {
-        const target = VALID_VIEWS.includes(view) ? view : '404';
         if (propertyId !== null) {
             setActivePropertyId(propertyId);
             localStorage.setItem('activePropertyId', String(propertyId));
@@ -52,11 +61,31 @@ export default function App() {
             setProfileTab(tab);
             localStorage.setItem('activeProfileTab', tab);
         }
-        setCurrentView(target);
-        localStorage.setItem('currentView', target);
+
+        switch (view) {
+            case 'home': navigate('/'); break;
+            case 'search': navigate('/search'); break;
+            case 'property': navigate(`/property/${propertyId || activePropertyId}`); break;
+            case 'profile': navigate('/profile'); break;
+            case 'host': navigate('/host'); break;
+            case 'inbox': navigate('/inbox'); break;
+            case 'confirmation': navigate('/confirmation'); break;
+            case 'signin': navigate('/signin'); break;
+            default: navigate('/404'); break;
+        }
     };
 
-    // --- HELPERS ---
+    // Keep activeProperty synced when navigating directly
+    useEffect(() => {
+        const path = window.location.pathname;
+        if (path.startsWith('/property/')) {
+            const id = parseInt(path.split('/')[2]);
+            if (!isNaN(id)) {
+                setActivePropertyId(id);
+                localStorage.setItem('activePropertyId', String(id));
+            }
+        }
+    }, [window.location.pathname]);
     const showToast = (msg) => {
         setToastMessage(msg);
         setTimeout(() => setToastMessage(''), 4000);
@@ -91,10 +120,11 @@ export default function App() {
                 if (currentUser) {
                     setUser(currentUser);
                     await loadUserData(currentUser);
-                    // If persisted view is signup, redirect to home
+
+                    // If persisted view was signin, push to home on fresh authenticated load
                     if (localStorage.getItem('currentView') === 'signin') {
-                        setCurrentView('home');
                         localStorage.setItem('currentView', 'home');
+                        navigate('/');
                     }
                 }
             } catch (err) {
@@ -106,14 +136,18 @@ export default function App() {
         init();
     }, []);
 
-    useEffect(() => { window.scrollTo(0, 0); }, [currentView, activePropertyId]);
-
+    // Scroll to top on route change
     useEffect(() => {
-        if (currentView === 'host') {
+        window.scrollTo(0, 0);
+    }, [window.location.pathname, activePropertyId]);
+
+    // Handle clearing pending host bookings when visiting the host dashboard
+    useEffect(() => {
+        if (window.location.pathname === '/host') {
             localStorage.setItem('lastHostView', Date.now().toString());
             setPendingHostBookings(0);
         }
-    }, [currentView]);
+    }, [window.location.pathname]);
 
     // --- HANDLERS ---
     const handleAuth = (userData) => {
@@ -209,10 +243,11 @@ export default function App() {
 
     // --- RENDER ---
 
-    // Always show skeleton while initializing — prevents sign-in page flash during OAuth redirect
+    // Always show skeleton while initializing
     if (isLoading) return <SkeletonPage />;
 
-    if (currentView === 'signin') {
+    // Intercept sign-in view if explicitly routed or forced
+    if (window.location.pathname === '/signin' || authTab === 'login_overlay') {
         return (
             <>
                 <SignInPage initialTab="login" onAuth={handleAuth} navigateTo={navigateTo} />
@@ -232,14 +267,16 @@ export default function App() {
                 onSignOut={handleSignOut}
             />
             <main className="flex-1">
-                {currentView === 'home' && <HomePage navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} setFilters={setFilters} />}
-                {currentView === 'search' && <SearchPage navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} filters={filters} setFilters={setFilters} sortBy={sortBy} setSortBy={setSortBy} onBook={handleBook} />}
-                {currentView === 'property' && <PropertyPage property={activeProperty} isFavorite={favorites.includes(activePropertyId)} onToggleFavorite={toggleFavorite} onBook={handleBook} navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} searchFilters={filters} user={user} />}
-                {currentView === 'profile' && <ProfilePage initialTab={profileTab} navigateTo={navigateTo} myBookings={myBookings} favorites={favorites} properties={properties} user={user} onSignOut={handleSignOut} onSignIn={openSignIn} onCancelBooking={handleCancelBooking} onUpdateUser={handleUpdateUser} />}
-                {currentView === 'host' && <HostDashboard user={user} navigateTo={navigateTo} />}
-                {currentView === 'inbox' && <InboxPage user={user} navigateTo={navigateTo} />}
-                {currentView === 'confirmation' && <ConfirmationPage booking={lastBooking} onNavigate={navigateTo} />}
-                {currentView === '404' && <NotFoundPage navigateTo={navigateTo} />}
+                <Routes>
+                    <Route path="/" element={<HomePage navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} setFilters={setFilters} />} />
+                    <Route path="/search" element={<SearchPage navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} filters={filters} setFilters={setFilters} sortBy={sortBy} setSortBy={setSortBy} onBook={handleBook} />} />
+                    <Route path="/property/:id" element={<PropertyPageRouteWrapper properties={properties} favorites={favorites} toggleFavorite={toggleFavorite} handleBook={handleBook} navigateTo={navigateTo} searchFilters={filters} user={user} />} />
+                    <Route path="/profile" element={<ProfilePage initialTab={profileTab} navigateTo={navigateTo} myBookings={myBookings} favorites={favorites} properties={properties} user={user} onSignOut={handleSignOut} onSignIn={openSignIn} onCancelBooking={handleCancelBooking} onUpdateUser={handleUpdateUser} />} />
+                    <Route path="/host" element={<HostDashboard user={user} navigateTo={navigateTo} />} />
+                    <Route path="/inbox" element={<InboxPage user={user} navigateTo={navigateTo} />} />
+                    <Route path="/confirmation" element={<ConfirmationPage booking={lastBooking} onNavigate={navigateTo} />} />
+                    <Route path="*" element={<NotFoundPage navigateTo={navigateTo} />} />
+                </Routes>
             </main>
             <Footer navigateTo={navigateTo} />
             {showBookingModal && activeProperty && <BookingModal property={bookingData || activeProperty} onConfirm={confirmBooking} onClose={() => setShowBookingModal(false)} />}
@@ -247,5 +284,30 @@ export default function App() {
             <Toast message={toastMessage} onClose={() => setToastMessage('')} />
             <ScrollToTop />
         </div>
+    );
+}
+
+// Wrapper to bridge react-router's :id param to our existing PropertyPage 
+function PropertyPageRouteWrapper({ properties, favorites, toggleFavorite, handleBook, navigateTo, searchFilters, user }) {
+    const { id } = useParams();
+    const propertyId = parseInt(id);
+    const activeProperty = properties.find(p => p.id === propertyId);
+
+    // If properties are loaded but no match is found, show 404
+    if (properties.length > 0 && !activeProperty) {
+        return <NotFoundPage navigateTo={navigateTo} />;
+    }
+
+    // PropertyPage handles its own skeleton/loading states inside if property is undefined initially
+    return (
+        <PropertyPage
+            property={activeProperty}
+            isFavorite={favorites.includes(propertyId)}
+            onToggleFavorite={toggleFavorite}
+            onBook={handleBook}
+            navigateTo={navigateTo}
+            searchFilters={searchFilters}
+            user={user}
+        />
     );
 }

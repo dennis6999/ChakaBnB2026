@@ -273,6 +273,24 @@ export const api = {
         const { data, error } = await supabase.from('bookings').insert([payload]).select().single();
         if (error) throw error;
 
+        // Trigger transactional email receipt via Edge Function asynchronously
+        try {
+            supabase.functions.invoke('send-email', {
+                body: {
+                    guestEmail: user.email,
+                    guestName: user.user_metadata?.name || user.email.split('@')[0],
+                    propertyName: bookingDetails.name,
+                    checkIn: payload.check_in,
+                    checkOut: payload.check_out,
+                    totalPrice: payload.total_price
+                }
+            }).then(({ error: edgeError }) => {
+                if (edgeError) console.error("Edge function email error:", edgeError);
+            }).catch(err => console.error("Edge function fetch error:", err));
+        } catch (e) {
+            console.error("Failed to trigger email notification:", e);
+        }
+
         // Return constructed booking object expecting by the frontend App state
         return {
             ...bookingDetails, // Original property details
