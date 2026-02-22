@@ -215,13 +215,13 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                     <div className="flex-1">
                         <div className="flex justify-between items-start pb-8 border-b border-stone-200 mb-8">
                             <div>
-                                <h2 className="text-2xl font-bold text-stone-900 mb-2">Hosted by {property.host?.name || 'Host'}</h2>
+                                <h2 className="text-2xl font-bold text-stone-900 mb-2">Hosted by {property.host_name || 'Host'}</h2>
                                 <p className="text-stone-500 flex items-center gap-3">
                                     <span>{property.guests} max guests/room</span> • <span>{property.bedrooms} beds/room</span>
                                 </p>
                             </div>
                             <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-800 font-bold text-xl">
-                                {(property.host?.name || 'H').charAt(0)}
+                                {(property.host_name || 'H').charAt(0)}
                             </div>
                         </div>
 
