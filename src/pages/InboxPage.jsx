@@ -11,6 +11,7 @@ export default function InboxPage({ user, navigateTo }) {
     const [sending, setSending] = useState(false);
 
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
 
     // Fetch messages on mount
     useEffect(() => {
@@ -68,7 +69,12 @@ export default function InboxPage({ user, navigateTo }) {
     // Scroll to bottom when reading chat
     useEffect(() => {
         if (activeChat) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            if (messagesContainerRef.current) {
+                messagesContainerRef.current.scrollTo({
+                    top: messagesContainerRef.current.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
             // Mark as read
             api.markMessagesAsRead(activeChat.otherUserId, activeChat.propertyId).catch(console.error);
         }
@@ -171,8 +177,8 @@ export default function InboxPage({ user, navigateTo }) {
                                     key={idx}
                                     onClick={() => setActiveChat(conv)}
                                     className={`w-full text-left p-4 flex gap-3 hover:bg-white transition border-b border-stone-100 ${activeChat?.otherUserId === conv.otherUserId && activeChat?.propertyId === conv.propertyId
-                                            ? 'bg-white border-l-4 border-l-emerald-600'
-                                            : 'border-l-4 border-l-transparent'
+                                        ? 'bg-white border-l-4 border-l-emerald-600'
+                                        : 'border-l-4 border-l-transparent'
                                         }`}
                                 >
                                     <div className="w-12 h-12 bg-stone-200 rounded-full flex-shrink-0 flex items-center justify-center text-stone-500 font-bold overflow-hidden">
@@ -236,7 +242,7 @@ export default function InboxPage({ user, navigateTo }) {
                             </div>
 
                             {/* Messages Area */}
-                            <div className="flex-1 overflow-y-auto p-4 bg-stone-50 flex flex-col gap-3">
+                            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-stone-50 flex flex-col gap-3">
                                 {activeChatMessages.map((msg, idx) => {
                                     const isMe = msg.sender_id === user.id;
                                     return (
@@ -253,7 +259,6 @@ export default function InboxPage({ user, navigateTo }) {
                                         </div>
                                     );
                                 })}
-                                <div ref={messagesEndRef} />
                             </div>
 
                             {/* Message Input */}
