@@ -197,6 +197,26 @@ export const api = {
         return data || [];
     },
 
+    // Fetch messages received for a host's properties
+    getHostMessages: async (hostId) => {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*, properties!inner(id, name, host_id)')
+            .eq('properties.host_id', hostId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('getHostMessages error:', error);
+            return [];
+        }
+        // Reshape to the format HostDashboard expects
+        return (data || []).map(msg => ({
+            ...msg,
+            guest_name: msg.sender_name,
+            message: msg.content,
+        }));
+    },
+
     // Fetch incoming reservations for a host
     getHostReservations: async (hostId) => {
         const { data, error } = await supabase
