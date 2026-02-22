@@ -4,9 +4,9 @@ import { api } from '../services/api.js';
 
 /**
  * ContactHostModal
- * Props: host { name }, propertyName, propertyId, hostId, guestName, onClose
+ * Props: host { name }, propertyName, propertyId, hostId, guestName, onClose, onNavigate
  */
-export default function ContactHostModal({ host, propertyName, propertyId, hostId, guestName, onClose }) {
+export default function ContactHostModal({ host, propertyName, propertyId, hostId, guestName, onClose, onNavigate }) {
     const [message, setMessage] = useState('');
     const [sent, setSent] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -15,12 +15,12 @@ export default function ContactHostModal({ host, propertyName, propertyId, hostI
         if (!message.trim()) return;
         setLoading(true);
         try {
-            await api.sendMessage({
-                property_id: propertyId,
-                host_id: hostId,
-                guest_name: guestName,
-                message: message.trim()
-            });
+            await api.sendMessage(
+                propertyId,
+                hostId,
+                host.name,
+                message.trim()
+            );
             setSent(true);
         } catch (err) {
             console.error("Failed to send message:", err);
@@ -50,9 +50,16 @@ export default function ContactHostModal({ host, propertyName, propertyId, hostI
                             <p className="text-stone-500 mb-6">
                                 {host.name} usually replies within a few hours. We'll notify you when they respond.
                             </p>
-                            <button onClick={onClose} className="bg-emerald-900 text-white font-bold px-6 py-3 rounded-xl hover:bg-emerald-800 transition">
-                                Done
-                            </button>
+                            <div className="flex gap-3 justify-center">
+                                {onNavigate && (
+                                    <button onClick={() => { onClose(); onNavigate('inbox'); }} className="bg-emerald-100 text-emerald-800 font-bold px-6 py-3 rounded-xl hover:bg-emerald-200 transition">
+                                        Go to Inbox
+                                    </button>
+                                )}
+                                <button onClick={onClose} className="bg-emerald-900 text-white font-bold px-6 py-3 rounded-xl hover:bg-emerald-800 transition">
+                                    Done
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         <>

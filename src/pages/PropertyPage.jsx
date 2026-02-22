@@ -323,8 +323,8 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                                             >
                                                 <Star
                                                     className={`w-7 h-7 ${star <= (reviewHover || reviewRating)
-                                                            ? 'fill-orange-400 text-orange-400'
-                                                            : 'text-stone-300'
+                                                        ? 'fill-orange-400 text-orange-400'
+                                                        : 'text-stone-300'
                                                         }`}
                                                 />
                                             </button>
@@ -521,6 +521,7 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                     hostId={property.host_id}
                     guestName={user?.name || 'Guest'}
                     onClose={() => setShowContact(false)}
+                    onNavigate={navigateTo}
                 />
             )}
 

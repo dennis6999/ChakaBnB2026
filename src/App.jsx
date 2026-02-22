@@ -16,9 +16,10 @@ import ConfirmationPage from './pages/ConfirmationPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import SignInPage from './pages/SignInPage.jsx';
 import HostDashboard from './pages/HostDashboard.jsx';
+import InboxPage from './pages/InboxPage.jsx';
 import { SkeletonPage } from './components/Skeleton.jsx';
 
-const VALID_VIEWS = ['home', 'search', 'property', 'profile', 'confirmation', 'signin', '404', 'host'];
+const VALID_VIEWS = ['home', 'search', 'property', 'profile', 'confirmation', 'signin', '404', 'host', 'inbox'];
 
 export default function App() {
     // --- STATE ---
@@ -236,6 +237,7 @@ export default function App() {
                 {currentView === 'property' && <PropertyPage property={activeProperty} isFavorite={favorites.includes(activePropertyId)} onToggleFavorite={toggleFavorite} onBook={handleBook} navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} searchFilters={filters} user={user} />}
                 {currentView === 'profile' && <ProfilePage initialTab={profileTab} navigateTo={navigateTo} myBookings={myBookings} favorites={favorites} properties={properties} user={user} onSignOut={handleSignOut} onSignIn={openSignIn} onCancelBooking={handleCancelBooking} onUpdateUser={handleUpdateUser} />}
                 {currentView === 'host' && <HostDashboard user={user} navigateTo={navigateTo} />}
+                {currentView === 'inbox' && <InboxPage user={user} navigateTo={navigateTo} />}
                 {currentView === 'confirmation' && <ConfirmationPage booking={lastBooking} onNavigate={navigateTo} />}
                 {currentView === '404' && <NotFoundPage navigateTo={navigateTo} />}
             </main>

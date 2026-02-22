@@ -304,21 +304,51 @@ export const api = {
 
     // ---- MESSAGING ----
 
-    // Send a message to a host
-    sendMessage: async (payload) => {
+    // Send a message
+    sendMessage: async (propertyId, receiverId, receiverName, content) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Must be logged in to send messages.");
+
+        const payload = {
+            property_id: propertyId,
+            sender_id: user.id,
+            receiver_id: receiverId,
+            sender_name: user.user_metadata?.name || user.email.split('@')[0],
+            receiver_name: receiverName,
+            content: content
+        };
         const { error } = await supabase.from('messages').insert([payload]);
         if (error) throw error;
     },
 
-    // Fetch messages for a host
-    getHostMessages: async (hostId) => {
+    // Fetch all messages involving the current user (used to build Inbox)
+    getUserConversations: async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return [];
+
         const { data, error } = await supabase
             .from('messages')
-            .select('*, properties(name)')
-            .eq('host_id', hostId)
-            .order('created_at', { ascending: false });
+            .select('*, properties(id, name, image)')
+            .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+            .order('created_at', { ascending: true });
 
         if (error) throw error;
         return data || [];
+    },
+
+    // Mark messages in a specific conversation as read
+    markMessagesAsRead: async (otherUserId, propertyId) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { error } = await supabase
+            .from('messages')
+            .update({ read: true })
+            .eq('sender_id', otherUserId)
+            .eq('receiver_id', user.id)
+            .eq('property_id', propertyId)
+            .eq('read', false);
+
+        if (error) throw error;
     }
 };

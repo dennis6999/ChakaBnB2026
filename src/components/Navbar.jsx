@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Search, User, Home, Heart, History, LogIn, PlusCircle } from 'lucide-react';
+import { MapPin, Search, User, Home, Heart, History, LogIn, PlusCircle, MessageCircle } from 'lucide-react';
 
 /**
  * Mobile-aware Navbar with fixed bottom navigation for small screens.
@@ -40,6 +40,13 @@ export default function Navbar({ navigateTo, bookingCount, hostBookingCount = 0,
                         </button>
                         {user ? (
                             <div className="flex items-center gap-4">
+                                <button
+                                    onClick={() => go('inbox')}
+                                    className="text-stone-600 hover:text-emerald-900 transition mr-2"
+                                    title="Messages"
+                                >
+                                    <MessageCircle className="w-5 h-5" />
+                                </button>
                                 <button
                                     onClick={() => go('host')}
                                     className="hidden lg:block relative text-sm font-bold text-stone-600 hover:text-emerald-900 transition mr-4"
@@ -111,6 +118,16 @@ export default function Navbar({ navigateTo, bookingCount, hostBookingCount = 0,
                                 {hostBookingCount}
                             </span>
                         )}
+                    </button>
+                )}
+
+                {user && (
+                    <button
+                        onClick={() => go('inbox')}
+                        className="flex flex-col items-center justify-center w-12 h-12 text-stone-500 hover:text-emerald-700 transition"
+                    >
+                        <MessageCircle className="w-6 h-6 mb-1" />
+                        <span className="text-[10px] font-bold">Inbox</span>
                     </button>
                 )}
 
