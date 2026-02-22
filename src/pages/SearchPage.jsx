@@ -184,7 +184,7 @@ export default function SearchPage({
                             {showSortDropdown && (
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setShowSortDropdown(false)}></div>
-                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-stone-100 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
+                                    <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-48 bg-white border border-stone-100 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-left sm:origin-top-right">
                                         {SORT_OPTIONS.map(o => (
                                             <button
                                                 key={o.id}
