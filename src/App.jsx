@@ -40,6 +40,7 @@ function AppContent() {
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authTab, setAuthTab] = useState('login');
     const [pendingHostBookings, setPendingHostBookings] = useState(0);
+    const [unreadMessageCount, setUnreadMessageCount] = useState(0);
     const [favorites, setFavorites] = useState([]);
     const [myBookings, setMyBookings] = useState([]);
     const [lastBooking, setLastBooking] = useState(null);
@@ -93,12 +94,15 @@ function AppContent() {
 
     const loadUserData = async (currentUser) => {
         try {
-            const [userBookings, hostReservations, hostMessages] = await Promise.all([
+            const [userBookings, hostReservations, hostMessages, unreadMessages] = await Promise.all([
                 api.getUserBookings(currentUser.id),
                 api.getHostReservations(currentUser.id),
-                api.getHostMessages(currentUser.id)
+                api.getHostMessages(currentUser.id),
+                api.getUnreadMessageCount(currentUser.id)
             ]);
             setMyBookings(userBookings);
+            setUnreadMessageCount(Number(unreadMessages) || 0);
+
             const lastHostView = Number(localStorage.getItem('lastHostView') || 0);
             const newRes = hostReservations.filter(r => new Date(r.created_at).getTime() > lastHostView);
             const newMsgs = hostMessages.filter(m => new Date(m.created_at).getTime() > lastHostView);
@@ -262,6 +266,7 @@ function AppContent() {
                 navigateTo={navigateTo}
                 bookingCount={myBookings.length}
                 hostBookingCount={pendingHostBookings}
+                unreadMessageCount={unreadMessageCount}
                 user={user}
                 onAuthClick={openSignIn}
                 onSignOut={handleSignOut}

@@ -188,8 +188,7 @@ export default function HostDashboard({ user, navigateTo }) {
                 {[
                     { id: 'analytics', label: 'Analytics Insights', count: null, icon: <TrendingUp className="w-4 h-4" /> },
                     { id: 'properties', label: 'My Listings', count: myProperties.length, icon: <Home className="w-4 h-4" /> },
-                    { id: 'reservations', label: 'Reservations & Blocks', count: reservations.filter(r => r.status !== 'HostBlock').length || null, icon: <Calendar className="w-4 h-4" /> },
-                    { id: 'messages', label: 'Inbox', count: messages.length, icon: <MessageSquare className="w-4 h-4" /> }
+                    { id: 'reservations', label: 'Reservations & Blocks', count: reservations.filter(r => r.status !== 'HostBlock').length || null, icon: <Calendar className="w-4 h-4" /> }
                 ].map((tab) => (
                     <button
                         key={tab.id}
@@ -694,48 +693,7 @@ export default function HostDashboard({ user, navigateTo }) {
                 )
             }
 
-            {/* Tab Content: Messages */}
-            {
-                activeTab === 'messages' && (
-                    <>
-                        {messages.length === 0 ? (
-                            <div className="text-center py-20 bg-emerald-50 border border-emerald-100 rounded-3xl border-dashed">
-                                <div className="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <MessageSquare className="text-emerald-700 w-8 h-8" />
-                                </div>
-                                <h3 className="text-xl font-bold text-stone-900 mb-2">No messages yet</h3>
-                                <p className="text-stone-500 max-w-sm mx-auto">
-                                    When guests contact you regarding your properties, their messages will appear here.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {messages.map(msg => (
-                                    <div key={msg.id} className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
-                                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-800 font-bold text-lg">
-                                                    {msg.guest_name.charAt(0).toUpperCase()}
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-bold text-stone-900 text-lg">{msg.guest_name}</h3>
-                                                    <div className="text-stone-500 text-sm flex items-center gap-1.5 flex-wrap mt-0.5">
-                                                        <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded ">{msg.properties?.name || 'Property Inquiry'}</span>
-                                                        <span>• {new Date(msg.created_at).toLocaleString('en-KE', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="bg-stone-50 border border-stone-100 p-4 rounded-xl text-stone-700 whitespace-pre-wrap text-sm leading-relaxed tracking-wide shadow-inner">
-                                            {msg.message}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </>
-                )
-            }
+
 
             {/* Add/Edit Property Modal */}
             {

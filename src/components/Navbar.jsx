@@ -5,7 +5,7 @@ import { MapPin, Search, User, Home, Heart, History, LogIn, PlusCircle, MessageC
  * Mobile-aware Navbar with fixed bottom navigation for small screens.
  * Props: navigateTo, bookingCount, hostBookingCount, user, onAuthClick, onSignOut
  */
-export default function Navbar({ navigateTo, bookingCount, hostBookingCount = 0, user, onAuthClick, onSignOut }) {
+export default function Navbar({ navigateTo, bookingCount, hostBookingCount = 0, unreadMessageCount = 0, user, onAuthClick, onSignOut }) {
     // We can track active path using window.location.pathname if we used React Router, 
     // but here we just pass a simple active state or rely on App.jsx state if it was passed.
     // For now, we'll let the user tap and just route.
@@ -42,10 +42,15 @@ export default function Navbar({ navigateTo, bookingCount, hostBookingCount = 0,
                             <div className="flex items-center gap-4">
                                 <button
                                     onClick={() => go('inbox')}
-                                    className="text-stone-600 hover:text-emerald-900 transition mr-2"
+                                    className="relative text-stone-600 hover:text-emerald-900 transition mr-2"
                                     title="Messages"
                                 >
                                     <MessageCircle className="w-5 h-5" />
+                                    {unreadMessageCount > 0 && (
+                                        <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full border border-white font-bold leading-none">
+                                            {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+                                        </span>
+                                    )}
                                 </button>
                                 <button
                                     onClick={() => go('host')}
@@ -124,10 +129,15 @@ export default function Navbar({ navigateTo, bookingCount, hostBookingCount = 0,
                 {user && (
                     <button
                         onClick={() => go('inbox')}
-                        className="flex flex-col items-center justify-center w-12 h-12 text-stone-500 hover:text-emerald-700 transition"
+                        className="relative flex flex-col items-center justify-center w-12 h-12 text-stone-500 hover:text-emerald-700 transition"
                     >
                         <MessageCircle className="w-6 h-6 mb-1" />
                         <span className="text-[10px] font-bold">Inbox</span>
+                        {unreadMessageCount > 0 && (
+                            <span className="absolute top-0 right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full border border-white font-bold leading-none">
+                                {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+                            </span>
+                        )}
                     </button>
                 )}
 
