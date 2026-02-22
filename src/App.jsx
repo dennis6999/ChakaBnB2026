@@ -231,7 +231,7 @@ export default function App() {
                 onSignOut={handleSignOut}
             />
             <main className="flex-1">
-                {currentView === 'home' && <HomePage navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} />}
+                {currentView === 'home' && <HomePage navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} setFilters={setFilters} />}
                 {currentView === 'search' && <SearchPage navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} filters={filters} setFilters={setFilters} sortBy={sortBy} setSortBy={setSortBy} onBook={handleBook} />}
                 {currentView === 'property' && <PropertyPage property={activeProperty} isFavorite={favorites.includes(activePropertyId)} onToggleFavorite={toggleFavorite} onBook={handleBook} navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} searchFilters={filters} user={user} />}
                 {currentView === 'profile' && <ProfilePage initialTab={profileTab} navigateTo={navigateTo} myBookings={myBookings} favorites={favorites} properties={properties} user={user} onSignOut={handleSignOut} onSignIn={openSignIn} onCancelBooking={handleCancelBooking} onUpdateUser={handleUpdateUser} />}

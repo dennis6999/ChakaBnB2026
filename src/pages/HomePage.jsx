@@ -5,7 +5,7 @@ import PropertyCard from '../components/PropertyCard.jsx';
 import { api } from '../services/api.js';
 import { PropertyCardSkeleton } from '../components/Skeleton.jsx';
 
-export default function HomePage({ navigateTo, favorites, toggleFavorite }) {
+export default function HomePage({ navigateTo, favorites, toggleFavorite, setFilters }) {
     const [featured, setFeatured] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -24,10 +24,10 @@ export default function HomePage({ navigateTo, favorites, toggleFavorite }) {
     }, []);
 
     const categories = [
-        { name: 'Ranches & Camps', icon: <Map className="w-8 h-8" />, color: 'bg-emerald-100 text-emerald-700' },
-        { name: 'Luxury Resorts', icon: <Star className="w-8 h-8" />, color: 'bg-orange-100 text-orange-700' },
-        { name: 'Town Apartments', icon: <Home className="w-8 h-8" />, color: 'bg-blue-100 text-blue-700' },
-        { name: 'Wellness Retreats', icon: <Heart className="w-8 h-8" />, color: 'bg-rose-100 text-rose-700' },
+        { name: 'Ranches & Camps', icon: <Map className="w-8 h-8" />, color: 'bg-emerald-100 text-emerald-700', type: 'Camp' },
+        { name: 'Luxury Resorts', icon: <Star className="w-8 h-8" />, color: 'bg-orange-100 text-orange-700', type: 'Resort' },
+        { name: 'Town Apartments', icon: <Home className="w-8 h-8" />, color: 'bg-blue-100 text-blue-700', type: 'Apartment' },
+        { name: 'Wellness Retreats', icon: <Heart className="w-8 h-8" />, color: 'bg-rose-100 text-rose-700', type: 'Hotel' },
     ];
 
     return (
@@ -79,7 +79,10 @@ export default function HomePage({ navigateTo, favorites, toggleFavorite }) {
                     {categories.map((cat, i) => (
                         <div
                             key={i}
-                            onClick={() => navigateTo('search')}
+                            onClick={() => {
+                                setFilters(prev => ({ ...prev, type: [cat.type] }));
+                                navigateTo('search');
+                            }}
                             className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center text-center group"
                         >
                             <div className={`${cat.color} p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform`}>
