@@ -535,7 +535,7 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
 
             {showContact && (
                 <ContactHostModal
-                    host={property.host || { name: 'Host' }}
+                    host={{ name: property.host_name || 'Host' }}
                     propertyName={property.name}
                     propertyId={property.id}
                     hostId={property.host_id}
