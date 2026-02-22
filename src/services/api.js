@@ -137,11 +137,18 @@ export const api = {
 
     // Sign in with Google OAuth
     signInWithGoogle: async () => {
+        // Determine the redirect URL based on environment
+        // In local dev, use the localhost origin. In production, use the vercel URL (or current origin if it's already production)
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const redirectUrl = isLocalhost
+            ? window.location.origin
+            : 'https://chakabnb.vercel.app';
+
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 // Ensure redirect lands back to the app correctly
-                redirectTo: window.location.origin
+                redirectTo: redirectUrl
             }
         });
         if (error) throw error;
