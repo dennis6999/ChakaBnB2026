@@ -41,7 +41,10 @@ export const api = {
 
     // Fetch properties for a specific host
     getHostProperties: async (hostId) => {
-        const { data, error } = await supabase.from('properties').select('*').eq('host_id', hostId);
+        // MVP Demo Behavior: Include properties where host_id is null so seeded data appears for the user
+        const { data, error } = await supabase.from('properties')
+            .select('*')
+            .or(`host_id.eq.${hostId},host_id.is.null`);
         if (error) throw error;
         return data || [];
     },
@@ -199,10 +202,11 @@ export const api = {
 
     // Fetch incoming reservations for a host
     getHostReservations: async (hostId) => {
+        // MVP Demo Behavior: Also include bookings for seeded properties (host_id is null)
         const { data, error } = await supabase
             .from('bookings')
             .select('*, properties!inner(*)')
-            .eq('properties.host_id', hostId)
+            .or(`host_id.eq.${hostId},host_id.is.null`, { referencedTable: 'properties' })
             .order('created_at', { ascending: false });
 
         if (error) throw error;
