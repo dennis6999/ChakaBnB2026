@@ -134,6 +134,17 @@ export default function App() {
         showToast('You\u2019ve been signed out');
     };
 
+    const handleUpdateUser = async (name, phone) => {
+        try {
+            const updatedUser = await api.updateUserProfile(name, phone);
+            setUser(updatedUser);
+            showToast('Profile updated successfully!');
+        } catch (err) {
+            console.error('Failed to update profile:', err);
+            showToast('Failed to update profile. Please try again.');
+        }
+    };
+
     const toggleFavorite = (e, id) => {
         e.stopPropagation();
         if (favorites.includes(id)) {
