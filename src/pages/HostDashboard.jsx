@@ -57,7 +57,10 @@ export default function HostDashboard({ user, navigateTo }) {
                 api.getHostMessages(user.id)
             ]);
             setMyProperties(propsData);
-            setReservations(resData);
+
+            // Clean up: hide any past blocks that were merely 'Cancelled' instead of deleted
+            const validReservations = resData.filter(r => !(r.status === 'Cancelled' && r.user_id === user.id));
+            setReservations(validReservations);
             setMessages(msgsData);
         } catch (err) {
             console.error("Failed to load dashboard data:", err);
@@ -69,9 +72,14 @@ export default function HostDashboard({ user, navigateTo }) {
     const handleUpdateStatus = async (bookingId, newStatus) => {
         setActionLoading(bookingId);
         try {
-            await api.updateBookingStatus(bookingId, newStatus);
-            // Quick local UI update
-            setReservations(prev => prev.map(r => r.id === bookingId ? { ...r, status: newStatus } : r));
+            if (newStatus === 'DeleteBlock') {
+                await api.deleteBooking(bookingId);
+                setReservations(prev => prev.filter(r => r.id !== bookingId));
+            } else {
+                await api.updateBookingStatus(bookingId, newStatus);
+                // Quick local UI update
+                setReservations(prev => prev.map(r => r.id === bookingId ? { ...r, status: newStatus } : r));
+            }
         } catch (err) {
             console.error("Failed to update status", err);
             showAlert("Failed to update booking status. Please try again.");
@@ -590,7 +598,7 @@ export default function HostDashboard({ user, navigateTo }) {
                                                         <div className="flex items-center gap-2 w-full sm:w-auto">
                                                             {res.status === 'HostBlock' ? (
                                                                 <button
-                                                                    onClick={() => handleUpdateStatus(res.id, 'Cancelled')}
+                                                                    onClick={() => handleUpdateStatus(res.id, 'DeleteBlock')}
                                                                     disabled={actionLoading === res.id}
                                                                     className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold border-2 border-stone-200 text-stone-700 hover:bg-stone-50 rounded-lg transition disabled:opacity-50"
                                                                 >
@@ -667,7 +675,7 @@ export default function HostDashboard({ user, navigateTo }) {
                                                         </div>
                                                         <div className="flex items-center gap-2 w-full sm:w-auto">
                                                             <button
-                                                                onClick={() => handleUpdateStatus(res.id, 'Cancelled')}
+                                                                onClick={() => handleUpdateStatus(res.id, 'DeleteBlock')}
                                                                 disabled={actionLoading === res.id}
                                                                 className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold border-2 border-stone-300 text-stone-700 hover:bg-white rounded-lg transition disabled:opacity-50 bg-white shadow-sm"
                                                             >

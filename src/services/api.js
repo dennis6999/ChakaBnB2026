@@ -201,7 +201,8 @@ export const api = {
             .order('created_at', { ascending: false });
 
         if (error) throw error;
-        return data || [];
+        // Hide bookings made on the host's own properties (blocks)
+        return (data || []).filter(booking => booking.properties?.host_id !== userId);
     },
 
     // Fetch messages received for a host's properties
@@ -260,6 +261,17 @@ export const api = {
 
         if (error) throw error;
         return data;
+    },
+
+    // Delete a booking (Unblock action)
+    deleteBooking: async (bookingId) => {
+        const { error } = await supabase
+            .from('bookings')
+            .delete()
+            .eq('id', bookingId);
+
+        if (error) throw error;
+        return true;
     },
 
     // Block dates (Host action)

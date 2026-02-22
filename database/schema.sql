@@ -68,6 +68,12 @@ ON bookings FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can view their own bookings." 
 ON bookings FOR SELECT USING (auth.uid() = user_id);
 
+CREATE POLICY "Users can update their own bookings." 
+ON bookings FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own bookings." 
+ON bookings FOR DELETE USING (auth.uid() = user_id);
+
 CREATE POLICY "Hosts can update bookings for their properties." 
 ON bookings FOR UPDATE USING (
     EXISTS (
