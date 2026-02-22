@@ -83,6 +83,32 @@ export const api = {
 
     // Submit a new review
     submitReview: async (propertyId, userName, rating, comment) => {
+        const { data: session } = await supabase.auth.getSession();
+        if (!session?.session?.user) throw new Error("Must be logged in to review.");
+        const userId = session.session.user.id;
+
+        // 1. Check if the user is the host
+        const { data: prop } = await supabase
+            .from('properties')
+            .select('host_id')
+            .eq('id', propertyId)
+            .single();
+        if (prop?.host_id === userId) {
+            throw new Error("Hosts cannot review their own properties.");
+        }
+
+        // 2. Check if user actually stayed there
+        const { data: stays } = await supabase
+            .from('bookings')
+            .select('id')
+            .eq('property_id', propertyId)
+            .eq('user_id', userId)
+            .eq('status', 'Completed');
+
+        if (!stays || stays.length === 0) {
+            throw new Error("You can only review properties you have stayed at (Completed booking).");
+        }
+
         const date = new Date().toLocaleDateString('en-KE', { month: 'long', year: 'numeric' });
         const { data, error } = await supabase
             .from('reviews')
@@ -225,6 +251,21 @@ export const api = {
         }));
     },
 
+    // Fetch total unread message count for a user (either as host or guest)
+    getUnreadMessageCount: async (userId) => {
+        const { count, error } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('receiver_id', userId)
+            .eq('read', false);
+
+        if (error) {
+            console.error('getUnreadMessageCount error:', error);
+            return 0;
+        }
+        return count || 0;
+    },
+
     // Fetch incoming reservations for a host
     getHostReservations: async (hostId) => {
         const { data, error } = await supabase
@@ -298,6 +339,11 @@ export const api = {
     createBooking: async (bookingDetails) => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("You must be logged in to book.");
+
+        // Prevent self-booking
+        if (bookingDetails.host_id === user.id) {
+            throw new Error("Hosts cannot book their own properties.");
+        }
 
         const payload = {
             user_id: user.id,

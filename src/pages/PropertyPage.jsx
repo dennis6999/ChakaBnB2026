@@ -46,6 +46,8 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
     const [showDatePicker, setShowDatePicker] = useState(false);
     const dateRef = useRef(null);
 
+    const [hasCompletedStay, setHasCompletedStay] = useState(false);
+
     // Fetch Reviews and Similar Properties
     useEffect(() => {
         if (!property) return;
@@ -58,9 +60,17 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                     api.getPropertyReviews(property.id),
                     api.getSimilarProperties(property.id, property.type)
                 ]);
+
+                let completedStay = false;
+                if (user) {
+                    const myStays = await api.getUserBookings(user.id);
+                    completedStay = myStays.some(b => b.property_id === property.id && b.status === 'Completed');
+                }
+
                 if (isMounted) {
                     setReviews(fetchedReviews);
                     setSimilar(fetchedSimilar);
+                    setHasCompletedStay(completedStay);
                 }
             } catch (err) {
                 console.error("Failed to fetch property details", err);
@@ -308,7 +318,17 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                             )}
 
                             {/* Leave a Review Form */}
-                            {user && !reviewSubmitted && (
+                            {user && isHost && (
+                                <p className="text-sm text-stone-400 mt-6 text-center">
+                                    Hosts cannot leave reviews on their own properties.
+                                </p>
+                            )}
+                            {user && !isHost && !hasCompletedStay && (
+                                <p className="text-sm text-stone-400 mt-6 text-center">
+                                    You can only leave a review after completing a stay at this property.
+                                </p>
+                            )}
+                            {user && !isHost && hasCompletedStay && !reviewSubmitted && (
                                 <div className="mt-8 p-6 bg-white border border-stone-200 rounded-3xl shadow-sm">
                                     <h4 className="font-bold text-stone-900 mb-4">Leave a Review</h4>
                                     <div className="flex items-center gap-1 mb-4">
@@ -368,7 +388,7 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                                     </button>
                                 </div>
                             )}
-                            {user && reviewSubmitted && (
+                            {user && !isHost && hasCompletedStay && reviewSubmitted && (
                                 <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 font-bold flex items-center gap-2">
                                     <Check className="w-5 h-5" /> Thank you! Your review has been posted.
                                 </div>
