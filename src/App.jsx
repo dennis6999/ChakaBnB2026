@@ -158,7 +158,9 @@ function AppContent() {
         setUser(userData);
         setShowAuthModal(false);
         showToast(`Welcome back, ${userData.name}! 👋`);
-        navigateTo('home');
+        if (currentView === 'signin') {
+            navigateTo('home');
+        }
         loadUserData(userData);
     };
 
