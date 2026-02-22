@@ -312,16 +312,22 @@ export default function HostDashboard({ user, navigateTo }) {
                             )}
                         </div>
                     </div>
+                </div>
+            )}
 
+            {/* Tab Content: Calendar */}
+            {activeTab === 'calendar' && (
+                <div className="space-y-6">
                     {/* Booking Timeline Grid */}
                     <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm overflow-hidden">
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
                             <h3 className="text-lg font-black text-stone-900 flex items-center gap-2">
                                 <Calendar className="w-5 h-5 text-blue-600" /> Availability Timeline (Next 30 Days)
                             </h3>
-                            <div className="flex gap-4 text-xs font-bold text-stone-500">
+                            <div className="flex gap-4 flex-wrap text-xs font-bold text-stone-500">
                                 <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-stone-50 border border-stone-200"></div> Available</div>
                                 <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/30"></div> Booked</div>
+                                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-orange-400 shadow-sm shadow-orange-400/30"></div> Pending</div>
                                 <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-stone-400 opacity-60"></div> Blocked</div>
                             </div>
                         </div>
@@ -343,11 +349,20 @@ export default function HostDashboard({ user, navigateTo }) {
                                 {/* Property Rows */}
                                 {myProperties.length > 0 ? myProperties.map(property => (
                                     <div key={property.id} className="flex items-center mb-1.5 group">
-                                        <div className="w-40 shrink-0 pr-4 truncate font-bold text-xs text-stone-600 group-hover:text-stone-900 transition flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded bg-stone-100 overflow-hidden shrink-0">
-                                                {property.image && <img src={property.image} className="w-full h-full object-cover" alt="" />}
+                                        <div className="w-40 shrink-0 pr-4 font-bold text-xs text-stone-600 group-hover:text-stone-900 transition flex items-center justify-between gap-2 relative">
+                                            <div className="flex items-center gap-2 truncate">
+                                                <div className="w-6 h-6 rounded bg-stone-100 overflow-hidden shrink-0">
+                                                    {property.image && <img src={property.image} className="w-full h-full object-cover" alt="" />}
+                                                </div>
+                                                <span className="truncate">{property.name}</span>
                                             </div>
-                                            <span className="truncate">{property.name}</span>
+                                            <button
+                                                onClick={() => { setPropertyToBlock(property); setShowBlockDatesModal(true); }}
+                                                className="opacity-0 group-hover:opacity-100 flex-shrink-0 bg-stone-900 text-white rounded p-1 hover:bg-stone-800 transition shadow-sm absolute right-2"
+                                                title="Block Dates"
+                                            >
+                                                <Lock className="w-3 h-3" />
+                                            </button>
                                         </div>
                                         <div className="flex-1 flex gap-1">
                                             {timelineDays.map((day, i) => {
@@ -357,8 +372,9 @@ export default function HostDashboard({ user, navigateTo }) {
                                                         key={i}
                                                         title={`${property.name} - ${format(day, 'MMM d')}: ${status.toUpperCase()}`}
                                                         className={`flex-1 min-w-[28px] h-8 rounded-md transition-all duration-300 ${status === 'booked' ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20 z-10 scale-y-105' :
-                                                            status === 'blocked' ? 'bg-stone-400 opacity-60 z-10 scale-y-105' :
-                                                                'bg-stone-50 hover:bg-stone-100 border border-stone-100/50'}`}
+                                                            status === 'pending' ? 'bg-orange-400 shadow-sm shadow-orange-400/20 z-10 scale-y-105 animate-pulse' :
+                                                                status === 'blocked' ? 'bg-stone-400 opacity-60 z-10 scale-y-105' :
+                                                                    'bg-stone-50 hover:bg-stone-100 border border-stone-100/50'}`}
                                                     />
                                                 );
                                             })}
@@ -371,380 +387,391 @@ export default function HostDashboard({ user, navigateTo }) {
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Tab Content: Properties */}
-            {activeTab === 'properties' && (
-                <>
-                    {myProperties.length === 0 ? (
-                        <div className="text-center py-20 bg-white border border-stone-200 rounded-3xl">
-                            <div className="bg-emerald-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Home className="text-emerald-600 w-8 h-8" />
+            {
+                activeTab === 'properties' && (
+                    <>
+                        {myProperties.length === 0 ? (
+                            <div className="text-center py-20 bg-white border border-stone-200 rounded-3xl">
+                                <div className="bg-emerald-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Home className="text-emerald-600 w-8 h-8" />
+                                </div>
+                                <h3 className="text-xl font-bold text-stone-900 mb-2">No properties yet</h3>
+                                <p className="text-stone-500 max-w-sm mx-auto mb-6">
+                                    Become a host by listing your first property on ChakaBnB. It's quick and easy!
+                                </p>
+                                <button
+                                    onClick={() => { setPropertyToEdit(null); setShowFormModal(true); }}
+                                    className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-stone-800 transition inline-flex items-center gap-2"
+                                >
+                                    <Plus className="w-5 h-5" /> Create Listing
+                                </button>
                             </div>
-                            <h3 className="text-xl font-bold text-stone-900 mb-2">No properties yet</h3>
-                            <p className="text-stone-500 max-w-sm mx-auto mb-6">
-                                Become a host by listing your first property on ChakaBnB. It's quick and easy!
-                            </p>
-                            <button
-                                onClick={() => { setPropertyToEdit(null); setShowFormModal(true); }}
-                                className="bg-stone-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-stone-800 transition inline-flex items-center gap-2"
-                            >
-                                <Plus className="w-5 h-5" /> Create Listing
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {myProperties.map(property => (
-                                <div key={property.id} className="bg-white border flex flex-col border-stone-200 rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 group">
-                                    <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
-                                        {property.image ? (
-                                            <img src={property.image} alt={property.name} className={`w-full h-full object-cover transition duration-700 ${property.is_active === false ? 'grayscale opacity-50' : 'group-hover:scale-105'}`} />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center flex-col text-stone-400">
-                                                <Home className="w-8 h-8 mb-2 opacity-50" />
-                                                <span className="text-xs font-medium">No Image</span>
-                                            </div>
-                                        )}
-                                        <div className="absolute top-4 left-4 flex gap-2">
-                                            <div className="bg-white/90 backdrop-blur px-2.5 py-1 rounded-full text-xs font-bold text-stone-900 shadow-sm">
-                                                {property.type}
-                                            </div>
-                                            {property.is_active === false && (
-                                                <div className="bg-stone-900/90 text-white backdrop-blur px-2.5 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
-                                                    <EyeOff className="w-3 h-3" /> Hidden
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {myProperties.map(property => (
+                                    <div key={property.id} className="bg-white border flex flex-col border-stone-200 rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 group">
+                                        <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
+                                            {property.image ? (
+                                                <img src={property.image} alt={property.name} className={`w-full h-full object-cover transition duration-700 ${property.is_active === false ? 'grayscale opacity-50' : 'group-hover:scale-105'}`} />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center flex-col text-stone-400">
+                                                    <Home className="w-8 h-8 mb-2 opacity-50" />
+                                                    <span className="text-xs font-medium">No Image</span>
                                                 </div>
                                             )}
-                                        </div>
-                                    </div>
-                                    <div className="p-5 flex-1 flex flex-col">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className={`font-bold text-lg leading-tight line-clamp-1 transition-colors ${property.is_active === false ? 'text-stone-400' : 'group-hover:text-emerald-700'}`}>
-                                                {property.name}
-                                            </h3>
-                                            <div className="flex items-center gap-1 shrink-0 bg-stone-100 px-1.5 py-0.5 rounded-md">
-                                                <Star className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
-                                                <span className="text-sm font-bold text-stone-700">{property.rating || 'New'}</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-stone-500 text-sm mb-3">
-                                            <MapPin className="w-4 h-4 text-stone-400" />
-                                            <span className="line-clamp-1">{property.distance}</span>
-                                        </div>
-                                        <div className="mt-auto pt-4 border-t border-stone-100 flex items-center justify-between">
-                                            <div className="font-black text-emerald-900 text-lg">
-                                                KES {property.price.toLocaleString()}
-                                                <span className="text-xs font-medium text-stone-500 ml-1">/ night</span>
-                                            </div>
-                                            <div className="flex gap-2 flex-wrap justify-end">
-                                                <button
-                                                    onClick={(e) => handleToggleActive(e, property)}
-                                                    disabled={actionLoading === property.id + '-toggle'}
-                                                    className={`px-3 py-1.5 font-bold rounded-lg text-xs transition border ${property.is_active === false ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'}`}
-                                                >
-                                                    {actionLoading === property.id + '-toggle' ? <Loader className="w-4 h-4 animate-spin inline" /> : (property.is_active === false ? 'Publish' : 'Hide')}
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setPropertyToEdit(property); setShowFormModal(true); }}
-                                                    className="px-3 py-1.5 bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900 font-bold rounded-lg text-xs transition"
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); navigateTo('property', property.id); }}
-                                                    disabled={property.is_active === false}
-                                                    className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-lg text-xs transition disabled:opacity-50"
-                                                >
-                                                    View
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setPropertyToBlock(property); setShowBlockDatesModal(true); }}
-                                                    className="px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 font-bold rounded-lg text-xs transition"
-                                                >
-                                                    Block
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </>
-            )}
-
-            {/* Tab Content: Reservations */}
-            {activeTab === 'reservations' && (
-                <>
-                    {reservations.length === 0 ? (
-                        <div className="text-center py-20 bg-stone-50 border border-stone-200 rounded-3xl border-dashed">
-                            <div className="bg-stone-200 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Calendar className="text-stone-500 w-8 h-8" />
-                            </div>
-                            <h3 className="text-xl font-bold text-stone-900 mb-2">No reservations or blocked dates</h3>
-                            <p className="text-stone-500 max-w-sm mx-auto">
-                                When guests book your properties, they will appear here. You can also block dates from your properties tab.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-12">
-                            {reservations.filter(r => r.status !== 'HostBlock').length > 0 && (
-                                <div className="space-y-4">
-                                    <h3 className="text-lg font-black text-stone-900 mb-4 flex items-center gap-2">
-                                        <User className="w-5 h-5 text-emerald-600" /> Guest Bookings
-                                    </h3>
-                                    {reservations.filter(r => r.status !== 'HostBlock').map(res => (
-                                        <div key={res.id} className="bg-white border border-stone-200 rounded-2xl p-5 flex flex-col md:flex-row gap-6 shadow-sm hover:shadow-md transition">
-                                            <div className="shrink-0 w-full md:w-48 aspect-video md:aspect-[4/3] rounded-xl overflow-hidden bg-stone-100">
-                                                {res.properties?.image ? (
-                                                    <img src={res.properties.image} alt={res.properties.name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <Home className="w-8 h-8 text-stone-300" />
+                                            <div className="absolute top-4 left-4 flex gap-2">
+                                                <div className="bg-white/90 backdrop-blur px-2.5 py-1 rounded-full text-xs font-bold text-stone-900 shadow-sm">
+                                                    {property.type}
+                                                </div>
+                                                {property.is_active === false && (
+                                                    <div className="bg-stone-900/90 text-white backdrop-blur px-2.5 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
+                                                        <EyeOff className="w-3 h-3" /> Hidden
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="flex-1 flex flex-col">
-                                                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-4">
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${res.status === 'HostBlock' ? 'bg-stone-200 text-stone-600' :
-                                                                res.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-800' :
-                                                                    res.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
-                                                                        'bg-orange-100 text-orange-800'
-                                                                }`}>
-                                                                {res.status === 'HostBlock' ? 'Blocked' : (res.status || 'Pending')}
-                                                            </span>
-                                                            <span className="text-stone-400 text-xs font-medium">Ref: {res.id.split('-')[0].toUpperCase()}</span>
+                                        </div>
+                                        <div className="p-5 flex-1 flex flex-col">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className={`font-bold text-lg leading-tight line-clamp-1 transition-colors ${property.is_active === false ? 'text-stone-400' : 'group-hover:text-emerald-700'}`}>
+                                                    {property.name}
+                                                </h3>
+                                                <div className="flex items-center gap-1 shrink-0 bg-stone-100 px-1.5 py-0.5 rounded-md">
+                                                    <Star className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
+                                                    <span className="text-sm font-bold text-stone-700">{property.rating || 'New'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-stone-500 text-sm mb-3">
+                                                <MapPin className="w-4 h-4 text-stone-400" />
+                                                <span className="line-clamp-1">{property.distance}</span>
+                                            </div>
+                                            <div className="mt-auto pt-4 border-t border-stone-100 flex items-center justify-between">
+                                                <div className="font-black text-emerald-900 text-lg">
+                                                    KES {property.price.toLocaleString()}
+                                                    <span className="text-xs font-medium text-stone-500 ml-1">/ night</span>
+                                                </div>
+                                                <div className="flex gap-2 flex-wrap justify-end">
+                                                    <button
+                                                        onClick={(e) => handleToggleActive(e, property)}
+                                                        disabled={actionLoading === property.id + '-toggle'}
+                                                        className={`px-3 py-1.5 font-bold rounded-lg text-xs transition border ${property.is_active === false ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'}`}
+                                                    >
+                                                        {actionLoading === property.id + '-toggle' ? <Loader className="w-4 h-4 animate-spin inline" /> : (property.is_active === false ? 'Publish' : 'Hide')}
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setPropertyToEdit(property); setShowFormModal(true); }}
+                                                        className="px-3 py-1.5 bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900 font-bold rounded-lg text-xs transition"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); navigateTo('property', property.id); }}
+                                                        disabled={property.is_active === false}
+                                                        className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-lg text-xs transition disabled:opacity-50"
+                                                    >
+                                                        View
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setPropertyToBlock(property); setShowBlockDatesModal(true); }}
+                                                        className="px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 font-bold rounded-lg text-xs transition"
+                                                    >
+                                                        Block
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )
+            }
+
+            {/* Tab Content: Reservations */}
+            {
+                activeTab === 'reservations' && (
+                    <>
+                        {reservations.length === 0 ? (
+                            <div className="text-center py-20 bg-stone-50 border border-stone-200 rounded-3xl border-dashed">
+                                <div className="bg-stone-200 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Calendar className="text-stone-500 w-8 h-8" />
+                                </div>
+                                <h3 className="text-xl font-bold text-stone-900 mb-2">No reservations or blocked dates</h3>
+                                <p className="text-stone-500 max-w-sm mx-auto">
+                                    When guests book your properties, they will appear here. You can also block dates from your properties tab.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-12">
+                                {reservations.filter(r => r.status !== 'HostBlock').length > 0 && (
+                                    <div className="space-y-4">
+                                        <h3 className="text-lg font-black text-stone-900 mb-4 flex items-center gap-2">
+                                            <User className="w-5 h-5 text-emerald-600" /> Guest Bookings
+                                        </h3>
+                                        {reservations.filter(r => r.status !== 'HostBlock').map(res => (
+                                            <div key={res.id} className="bg-white border border-stone-200 rounded-2xl p-5 flex flex-col md:flex-row gap-6 shadow-sm hover:shadow-md transition">
+                                                <div className="shrink-0 w-full md:w-48 aspect-video md:aspect-[4/3] rounded-xl overflow-hidden bg-stone-100">
+                                                    {res.properties?.image ? (
+                                                        <img src={res.properties.image} alt={res.properties.name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <Home className="w-8 h-8 text-stone-300" />
                                                         </div>
-                                                        <h3 className="font-bold text-xl text-stone-900 mb-2">
-                                                            {res.properties?.name || 'Unknown Property'}
-                                                        </h3>
-                                                        <div className="flex items-center gap-3 text-sm text-stone-600">
-                                                            <div className="flex items-center gap-1.5 bg-stone-50 px-2.5 py-1 rounded-lg">
-                                                                <Calendar className="w-4 h-4 text-emerald-600" />
-                                                                <span className="font-semibold text-stone-900">
-                                                                    {new Date(res.check_in).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' })} - {new Date(res.check_out).toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 flex flex-col">
+                                                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-4">
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${res.status === 'HostBlock' ? 'bg-stone-200 text-stone-600' :
+                                                                    res.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-800' :
+                                                                        res.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
+                                                                            'bg-orange-100 text-orange-800'
+                                                                    }`}>
+                                                                    {res.status === 'HostBlock' ? 'Blocked' : (res.status || 'Pending')}
                                                                 </span>
+                                                                <span className="text-stone-400 text-xs font-medium">Ref: {res.id.split('-')[0].toUpperCase()}</span>
+                                                            </div>
+                                                            <h3 className="font-bold text-xl text-stone-900 mb-2">
+                                                                {res.properties?.name || 'Unknown Property'}
+                                                            </h3>
+                                                            <div className="flex items-center gap-3 text-sm text-stone-600">
+                                                                <div className="flex items-center gap-1.5 bg-stone-50 px-2.5 py-1 rounded-lg">
+                                                                    <Calendar className="w-4 h-4 text-emerald-600" />
+                                                                    <span className="font-semibold text-stone-900">
+                                                                        {new Date(res.check_in).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' })} - {new Date(res.check_out).toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-left md:text-right bg-stone-50 p-4 rounded-xl border border-stone-100 shrink-0">
+                                                            {res.status === 'HostBlock' ? (
+                                                                <>
+                                                                    <p className="text-xs text-stone-500 font-bold uppercase tracking-wider mb-1">Availability</p>
+                                                                    <p className="font-black text-xl text-stone-700">Unavailable</p>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <p className="text-xs text-stone-500 font-bold uppercase tracking-wider mb-1">Total Payout</p>
+                                                                    <p className="font-black text-2xl text-emerald-700">KES {res.total_price?.toLocaleString() || '0'}</p>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-auto flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-stone-100 pt-4 gap-4">
+                                                        <div className="flex items-center gap-2 text-sm">
+                                                            {res.status === 'HostBlock' ? (
+                                                                <>
+                                                                    <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-600 font-bold shrink-0">
+                                                                        <Lock className="w-4 h-4" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-semibold text-stone-900">Blocked by You</p>
+                                                                        <p className="text-stone-500 text-xs">Manual block</p>
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold shrink-0">
+                                                                        <User className="w-4 h-4" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-semibold text-stone-900">Guest User</p>
+                                                                        <p className="text-stone-500 text-xs text-ellipsis overflow-hidden max-w-[150px] sm:max-w-xs whitespace-nowrap">ID: {res.user_id.split('-')[0]}</p>
+                                                                    </div>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                            {res.status === 'HostBlock' ? (
+                                                                <button
+                                                                    onClick={() => handleUpdateStatus(res.id, 'Cancelled')}
+                                                                    disabled={actionLoading === res.id}
+                                                                    className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold border-2 border-stone-200 text-stone-700 hover:bg-stone-50 rounded-lg transition disabled:opacity-50"
+                                                                >
+                                                                    {actionLoading === res.id ? 'Loading...' : 'Unblock Dates'}
+                                                                </button>
+                                                            ) : (
+                                                                <>
+                                                                    {res.status !== 'Cancelled' && (
+                                                                        <button
+                                                                            onClick={() => handleUpdateStatus(res.id, 'Cancelled')}
+                                                                            disabled={actionLoading === res.id}
+                                                                            className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                                                                        >
+                                                                            {actionLoading === res.id ? 'Loading...' : 'Cancel'}
+                                                                        </button>
+                                                                    )}
+                                                                    {res.status !== 'Confirmed' && res.status !== 'Cancelled' && (
+                                                                        <button
+                                                                            onClick={() => handleUpdateStatus(res.id, 'Confirmed')}
+                                                                            disabled={actionLoading === res.id}
+                                                                            className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold bg-stone-900 text-white hover:bg-stone-800 rounded-lg transition disabled:opacity-50"
+                                                                        >
+                                                                            {actionLoading === res.id ? 'Loading...' : 'Approve'}
+                                                                        </button>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {reservations.filter(r => r.status === 'HostBlock').length > 0 && (
+                                    <div className="space-y-4 pt-4 border-t border-stone-200">
+                                        <h3 className="text-lg font-black text-stone-900 mb-4 flex items-center gap-2">
+                                            <Lock className="w-5 h-5 text-stone-500" /> Blocked Dates
+                                        </h3>
+                                        {reservations.filter(r => r.status === 'HostBlock').map(res => (
+                                            <div key={res.id} className="bg-stone-50 border border-stone-200 rounded-2xl p-5 flex flex-col md:flex-row gap-6 shadow-sm hover:shadow-md transition">
+                                                <div className="flex-1 flex flex-col">
+                                                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-4">
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-stone-200 text-stone-600">
+                                                                    Blocked
+                                                                </span>
+                                                            </div>
+                                                            <h3 className="font-bold text-xl text-stone-900 mb-2">
+                                                                {res.properties?.name || 'Unknown Property'}
+                                                            </h3>
+                                                            <div className="flex items-center gap-3 text-sm text-stone-600">
+                                                                <div className="flex items-center gap-1.5 bg-white border border-stone-200 px-2.5 py-1 rounded-lg">
+                                                                    <Calendar className="w-4 h-4 text-stone-500" />
+                                                                    <span className="font-semibold text-stone-900">
+                                                                        {new Date(res.check_in).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' })} - {new Date(res.check_out).toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="text-left md:text-right bg-stone-50 p-4 rounded-xl border border-stone-100 shrink-0">
-                                                        {res.status === 'HostBlock' ? (
-                                                            <>
-                                                                <p className="text-xs text-stone-500 font-bold uppercase tracking-wider mb-1">Availability</p>
-                                                                <p className="font-black text-xl text-stone-700">Unavailable</p>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <p className="text-xs text-stone-500 font-bold uppercase tracking-wider mb-1">Total Payout</p>
-                                                                <p className="font-black text-2xl text-emerald-700">KES {res.total_price?.toLocaleString() || '0'}</p>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </div>
 
-                                                <div className="mt-auto flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-stone-100 pt-4 gap-4">
-                                                    <div className="flex items-center gap-2 text-sm">
-                                                        {res.status === 'HostBlock' ? (
-                                                            <>
-                                                                <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-600 font-bold shrink-0">
-                                                                    <Lock className="w-4 h-4" />
-                                                                </div>
-                                                                <div>
-                                                                    <p className="font-semibold text-stone-900">Blocked by You</p>
-                                                                    <p className="text-stone-500 text-xs">Manual block</p>
-                                                                </div>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold shrink-0">
-                                                                    <User className="w-4 h-4" />
-                                                                </div>
-                                                                <div>
-                                                                    <p className="font-semibold text-stone-900">Guest User</p>
-                                                                    <p className="text-stone-500 text-xs text-ellipsis overflow-hidden max-w-[150px] sm:max-w-xs whitespace-nowrap">ID: {res.user_id.split('-')[0]}</p>
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                                                        {res.status === 'HostBlock' ? (
+                                                    <div className="mt-auto flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-stone-200 pt-4 gap-4">
+                                                        <div className="flex items-center gap-2 text-sm">
+                                                            <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-600 font-bold shrink-0">
+                                                                <Lock className="w-4 h-4" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-semibold text-stone-900">Blocked by You</p>
+                                                                <p className="text-stone-500 text-xs">Manual block</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 w-full sm:w-auto">
                                                             <button
                                                                 onClick={() => handleUpdateStatus(res.id, 'Cancelled')}
                                                                 disabled={actionLoading === res.id}
-                                                                className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold border-2 border-stone-200 text-stone-700 hover:bg-stone-50 rounded-lg transition disabled:opacity-50"
+                                                                className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold border-2 border-stone-300 text-stone-700 hover:bg-white rounded-lg transition disabled:opacity-50 bg-white shadow-sm"
                                                             >
                                                                 {actionLoading === res.id ? 'Loading...' : 'Unblock Dates'}
                                                             </button>
-                                                        ) : (
-                                                            <>
-                                                                {res.status !== 'Cancelled' && (
-                                                                    <button
-                                                                        onClick={() => handleUpdateStatus(res.id, 'Cancelled')}
-                                                                        disabled={actionLoading === res.id}
-                                                                        className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
-                                                                    >
-                                                                        {actionLoading === res.id ? 'Loading...' : 'Cancel'}
-                                                                    </button>
-                                                                )}
-                                                                {res.status !== 'Confirmed' && res.status !== 'Cancelled' && (
-                                                                    <button
-                                                                        onClick={() => handleUpdateStatus(res.id, 'Confirmed')}
-                                                                        disabled={actionLoading === res.id}
-                                                                        className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold bg-stone-900 text-white hover:bg-stone-800 rounded-lg transition disabled:opacity-50"
-                                                                    >
-                                                                        {actionLoading === res.id ? 'Loading...' : 'Approve'}
-                                                                    </button>
-                                                                )}
-                                                            </>
-                                                        )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {reservations.filter(r => r.status === 'HostBlock').length > 0 && (
-                                <div className="space-y-4 pt-4 border-t border-stone-200">
-                                    <h3 className="text-lg font-black text-stone-900 mb-4 flex items-center gap-2">
-                                        <Lock className="w-5 h-5 text-stone-500" /> Blocked Dates
-                                    </h3>
-                                    {reservations.filter(r => r.status === 'HostBlock').map(res => (
-                                        <div key={res.id} className="bg-stone-50 border border-stone-200 rounded-2xl p-5 flex flex-col md:flex-row gap-6 shadow-sm hover:shadow-md transition">
-                                            <div className="flex-1 flex flex-col">
-                                                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-4">
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-stone-200 text-stone-600">
-                                                                Blocked
-                                                            </span>
-                                                        </div>
-                                                        <h3 className="font-bold text-xl text-stone-900 mb-2">
-                                                            {res.properties?.name || 'Unknown Property'}
-                                                        </h3>
-                                                        <div className="flex items-center gap-3 text-sm text-stone-600">
-                                                            <div className="flex items-center gap-1.5 bg-white border border-stone-200 px-2.5 py-1 rounded-lg">
-                                                                <Calendar className="w-4 h-4 text-stone-500" />
-                                                                <span className="font-semibold text-stone-900">
-                                                                    {new Date(res.check_in).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' })} - {new Date(res.check_out).toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-auto flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-stone-200 pt-4 gap-4">
-                                                    <div className="flex items-center gap-2 text-sm">
-                                                        <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-600 font-bold shrink-0">
-                                                            <Lock className="w-4 h-4" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-semibold text-stone-900">Blocked by You</p>
-                                                            <p className="text-stone-500 text-xs">Manual block</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                                                        <button
-                                                            onClick={() => handleUpdateStatus(res.id, 'Cancelled')}
-                                                            disabled={actionLoading === res.id}
-                                                            className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold border-2 border-stone-300 text-stone-700 hover:bg-white rounded-lg transition disabled:opacity-50 bg-white shadow-sm"
-                                                        >
-                                                            {actionLoading === res.id ? 'Loading...' : 'Unblock Dates'}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </>
-            )}
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </>
+                )
+            }
 
             {/* Tab Content: Messages */}
-            {activeTab === 'messages' && (
-                <>
-                    {messages.length === 0 ? (
-                        <div className="text-center py-20 bg-emerald-50 border border-emerald-100 rounded-3xl border-dashed">
-                            <div className="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <MessageSquare className="text-emerald-700 w-8 h-8" />
+            {
+                activeTab === 'messages' && (
+                    <>
+                        {messages.length === 0 ? (
+                            <div className="text-center py-20 bg-emerald-50 border border-emerald-100 rounded-3xl border-dashed">
+                                <div className="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <MessageSquare className="text-emerald-700 w-8 h-8" />
+                                </div>
+                                <h3 className="text-xl font-bold text-stone-900 mb-2">No messages yet</h3>
+                                <p className="text-stone-500 max-w-sm mx-auto">
+                                    When guests contact you regarding your properties, their messages will appear here.
+                                </p>
                             </div>
-                            <h3 className="text-xl font-bold text-stone-900 mb-2">No messages yet</h3>
-                            <p className="text-stone-500 max-w-sm mx-auto">
-                                When guests contact you regarding your properties, their messages will appear here.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {messages.map(msg => (
-                                <div key={msg.id} className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
-                                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-800 font-bold text-lg">
-                                                {msg.guest_name.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <h3 className="font-bold text-stone-900 text-lg">{msg.guest_name}</h3>
-                                                <div className="text-stone-500 text-sm flex items-center gap-1.5 flex-wrap mt-0.5">
-                                                    <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded ">{msg.properties?.name || 'Property Inquiry'}</span>
-                                                    <span>• {new Date(msg.created_at).toLocaleString('en-KE', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        ) : (
+                            <div className="space-y-4">
+                                {messages.map(msg => (
+                                    <div key={msg.id} className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-800 font-bold text-lg">
+                                                    {msg.guest_name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-stone-900 text-lg">{msg.guest_name}</h3>
+                                                    <div className="text-stone-500 text-sm flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                        <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded ">{msg.properties?.name || 'Property Inquiry'}</span>
+                                                        <span>• {new Date(msg.created_at).toLocaleString('en-KE', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+                                        <div className="bg-stone-50 border border-stone-100 p-4 rounded-xl text-stone-700 whitespace-pre-wrap text-sm leading-relaxed tracking-wide shadow-inner">
+                                            {msg.message}
+                                        </div>
                                     </div>
-                                    <div className="bg-stone-50 border border-stone-100 p-4 rounded-xl text-stone-700 whitespace-pre-wrap text-sm leading-relaxed tracking-wide shadow-inner">
-                                        {msg.message}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </>
-            )}
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )
+            }
 
             {/* Add/Edit Property Modal */}
-            {showFormModal && (
-                <PropertyFormModal
-                    user={user}
-                    editProperty={propertyToEdit}
-                    showAlert={showAlert}
-                    onClose={() => { setShowFormModal(false); setPropertyToEdit(null); }}
-                    onSuccess={(updatedProp) => {
-                        if (propertyToEdit) {
-                            setMyProperties(prev => prev.map(p => p.id === updatedProp.id ? updatedProp : p));
-                        } else {
-                            setMyProperties([updatedProp, ...myProperties]);
-                        }
-                        setShowFormModal(false);
-                        setPropertyToEdit(null);
-                    }}
-                />
-            )}
+            {
+                showFormModal && (
+                    <PropertyFormModal
+                        user={user}
+                        editProperty={propertyToEdit}
+                        showAlert={showAlert}
+                        onClose={() => { setShowFormModal(false); setPropertyToEdit(null); }}
+                        onSuccess={(updatedProp) => {
+                            if (propertyToEdit) {
+                                setMyProperties(prev => prev.map(p => p.id === updatedProp.id ? updatedProp : p));
+                            } else {
+                                setMyProperties([updatedProp, ...myProperties]);
+                            }
+                            setShowFormModal(false);
+                            setPropertyToEdit(null);
+                        }}
+                    />
+                )
+            }
 
             {/* Block Dates Modal */}
-            {showBlockDatesModal && propertyToBlock && (
-                <BlockDatesModal
-                    property={propertyToBlock}
-                    onClose={() => { setShowBlockDatesModal(false); setPropertyToBlock(null); }}
-                    onSuccess={(newBlock) => {
-                        setReservations(prev => [newBlock, ...prev]);
-                        setShowBlockDatesModal(false);
-                        setPropertyToBlock(null);
-                        showAlert('Dates successfully blocked.', 'Success', 'success');
-                    }}
-                    showAlert={showAlert}
-                />
-            )}
+            {
+                showBlockDatesModal && propertyToBlock && (
+                    <BlockDatesModal
+                        property={propertyToBlock}
+                        onClose={() => { setShowBlockDatesModal(false); setPropertyToBlock(null); }}
+                        onSuccess={(newBlock) => {
+                            setReservations(prev => [newBlock, ...prev]);
+                            setShowBlockDatesModal(false);
+                            setPropertyToBlock(null);
+                            showAlert('Dates successfully blocked.', 'Success', 'success');
+                        }}
+                        showAlert={showAlert}
+                    />
+                )
+            }
 
             <AlertModal
                 {...alertConfig}
                 onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
             />
-        </div>
+        </div >
     );
 }
 

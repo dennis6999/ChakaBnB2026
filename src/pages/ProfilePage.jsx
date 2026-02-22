@@ -143,8 +143,11 @@ export default function ProfilePage({ navigateTo, initialTab = 'trips', myBookin
                                                     <div>
                                                         <div className="flex justify-between items-start mb-1 gap-2">
                                                             <h3 className="font-bold text-lg text-stone-900 leading-tight">{booking.properties?.name || booking.name}</h3>
-                                                            <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-1 rounded flex-shrink-0">
-                                                                {booking.status}
+                                                            <span className={`text-xs font-bold px-2 py-1 rounded flex-shrink-0 ${booking.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-800' :
+                                                                    booking.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
+                                                                        'bg-orange-100 text-orange-800'
+                                                                }`}>
+                                                                {booking.status || 'Pending'}
                                                             </span>
                                                         </div>
                                                         <p className="text-sm text-stone-500 flex items-center gap-1 mb-1">

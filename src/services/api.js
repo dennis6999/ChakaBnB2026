@@ -267,7 +267,7 @@ export const api = {
             check_out: bookingDetails.checkOutStr || new Date(Date.now() + 86400000).toISOString(),
             rooms: bookingDetails.rooms || 1,
             total_price: bookingDetails.totalPrice || bookingDetails.price,
-            status: 'Confirmed'
+            status: 'Pending'
         };
 
         const { data, error } = await supabase.from('bookings').insert([payload]).select().single();
