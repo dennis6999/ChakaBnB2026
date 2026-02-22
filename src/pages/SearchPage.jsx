@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { SlidersHorizontal, Map, Grid, List } from 'lucide-react';
+import { SlidersHorizontal, Map, Grid, List, ChevronDown, Check } from 'lucide-react';
 import { api } from '../services/api.js';
 import PropertyCard from '../components/PropertyCard.jsx';
 import PriceRangeSlider from '../components/PriceRangeSlider.jsx';
 import MapView from '../components/MapView.jsx';
 import { SearchResultSkeleton } from '../components/Skeleton.jsx';
+import { AMENITIES } from '../utils/constants.js';
 
 const PROPERTY_TYPES = ['Camp', 'Hotel', 'Apartment', 'Resort'];
 const POLICIES = ['Free cancellation', 'No prepayment needed'];
@@ -27,8 +28,11 @@ export default function SearchPage({
 
     const [displayMode, setDisplayMode] = useState('list');
     const [showFilters, setShowFilters] = useState(false);
+    const [showSortDropdown, setShowSortDropdown] = useState(false);
     const [viewMode, setViewMode] = useState('list');
     const [priceRange, setPriceRange] = useState([0, 15000]);
+    const [mapBounds, setMapBounds] = useState(null);
+    const [searchAsMoveMap, setSearchAsMoveMap] = useState(false);
 
     // Fetch initial data
     useEffect(() => {
@@ -60,11 +64,11 @@ export default function SearchPage({
     };
 
     const clearFilters = () => {
-        setFilters({ ...filters, type: [], policies: [], meals: [] });
+        setFilters({ ...filters, type: [], policies: [], meals: [], features: [], minBedrooms: 0, minBathrooms: 0 });
         setPriceRange([0, 15000]);
     };
 
-    const hasActiveFilters = (filters.type || []).length > 0 || (filters.policies || []).length > 0 || (filters.meals || []).length > 0 || priceRange[0] > 0 || priceRange[1] < 15000;
+    const hasActiveFilters = (filters.type || []).length > 0 || (filters.policies || []).length > 0 || (filters.meals || []).length > 0 || (filters.features || []).length > 0 || filters.minBedrooms > 0 || filters.minBathrooms > 0 || priceRange[0] > 0 || priceRange[1] < 15000;
 
     // Derived filtering logic
     const filtered = useMemo(() => {
@@ -100,6 +104,16 @@ export default function SearchPage({
                 // Price Filter
                 if (p.price < priceRange[0] || p.price > priceRange[1]) return false;
 
+                // Granular Capacity Controls
+                if (filters.minBedrooms > 0 && (p.bedrooms || 0) < filters.minBedrooms) return false;
+                if (filters.minBathrooms > 0 && (p.bathrooms || 0) < filters.minBathrooms) return false;
+
+                // Amenities (Must contain ALL selected features)
+                if ((filters.features || []).length > 0) {
+                    const hasAllFeatures = filters.features.every(f => (p.features || []).includes(f));
+                    if (!hasAllFeatures) return false;
+                }
+
                 // Type Filter
                 if ((filters.type || []).length > 0 && !filters.type.includes(p.type)) return false;
 
@@ -116,6 +130,21 @@ export default function SearchPage({
                 if ((filters.meals || []).length > 0) {
                     const wantsBreakfast = filters.meals.includes('Breakfast included');
                     if (wantsBreakfast && p.mealPlan !== 'Breakfast included') return false;
+                }
+
+                // Map Bounds Filter (Search as I move the map)
+                if (viewMode === 'map' && searchAsMoveMap && mapBounds) {
+                    if (p.latitude && p.longitude) {
+                        const lat = Number(p.latitude);
+                        const lng = Number(p.longitude);
+                        const ne = mapBounds.getNorthEast();
+                        const sw = mapBounds.getSouthWest();
+
+                        const isInside = lat <= ne.lat && lat >= sw.lat && lng <= ne.lng && lng >= sw.lng;
+                        if (!isInside) return false;
+                    } else {
+                        return false;
+                    }
                 }
 
                 return true;
@@ -142,14 +171,37 @@ export default function SearchPage({
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                        {/* Sort */}
-                        <select
-                            value={sortBy}
-                            onChange={e => setSortBy(e.target.value)}
-                            className="border border-stone-200 rounded-xl px-3 py-2 text-sm font-semibold text-stone-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        >
-                            {SORT_OPTIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-                        </select>
+                        {/* Custom Sort Dropdown */}
+                        <div className="relative z-50">
+                            <button
+                                onClick={() => setShowSortDropdown(!showSortDropdown)}
+                                className={`flex items-center gap-2 border rounded-xl px-4 py-2 text-sm font-bold transition ${showSortDropdown ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'}`}
+                            >
+                                {SORT_OPTIONS.find(o => o.id === sortBy)?.label || 'Sort'}
+                                <ChevronDown className={`w-4 h-4 transition-transform ${showSortDropdown ? 'rotate-180 text-emerald-600' : 'text-stone-400'}`} />
+                            </button>
+
+                            {showSortDropdown && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setShowSortDropdown(false)}></div>
+                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-stone-100 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
+                                        {SORT_OPTIONS.map(o => (
+                                            <button
+                                                key={o.id}
+                                                onClick={() => {
+                                                    setSortBy(o.id);
+                                                    setShowSortDropdown(false);
+                                                }}
+                                                className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between transition ${sortBy === o.id ? 'bg-emerald-50 text-emerald-800' : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900'}`}
+                                            >
+                                                {o.label}
+                                                {sortBy === o.id && <Check className="w-4 h-4 text-emerald-600" />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
 
                         {/* View toggle */}
                         <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden bg-white">
@@ -189,15 +241,27 @@ export default function SearchPage({
                 </div>
 
                 {viewMode === 'map' && (
-                    <div className="mb-8">
+                    <div className="mb-8 relative">
                         {isLoading ? (
                             <div className="h-[60vh] rounded-3xl bg-stone-200 animate-pulse border border-stone-300"></div>
                         ) : (
-                            <MapView
-                                properties={filtered}
-                                onNavigate={(id) => navigateTo('property', id)}
-                                locationName={filters?.location || 'Chaka, Nyeri County'}
-                            />
+                            <>
+                                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] bg-white px-4 py-2.5 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-stone-200 flex items-center gap-3 transition hover:scale-105 active:scale-95 cursor-pointer" onClick={() => setSearchAsMoveMap(!searchAsMoveMap)}>
+                                    <input
+                                        type="checkbox"
+                                        checked={searchAsMoveMap}
+                                        readOnly
+                                        className="w-4 h-4 accent-emerald-600 pointer-events-none"
+                                    />
+                                    <span className="text-sm font-black text-stone-800 select-none">Search as I move the map</span>
+                                </div>
+                                <MapView
+                                    properties={filtered}
+                                    onNavigate={(id) => navigateTo('property', id)}
+                                    onBoundsChange={(bounds) => setMapBounds(bounds)}
+                                    locationName={filters?.location || 'Chaka, Nyeri County'}
+                                />
+                            </>
                         )}
                     </div>
                 )}
@@ -231,6 +295,69 @@ export default function SearchPage({
                                                     className="w-4 h-4 accent-emerald-700 rounded"
                                                 />
                                                 <span className="text-stone-600 group-hover:text-stone-900 transition text-sm font-medium">{t}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Granular Capacity Controls */}
+                                <div className="mb-8 border-t border-stone-100 pt-6">
+                                    <h4 className="font-bold text-stone-900 mb-4 text-sm uppercase tracking-wider">Capacity Requirements</h4>
+
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-sm font-medium text-stone-700">Min. Bedrooms</span>
+                                        <div className="flex items-center gap-3 bg-stone-50 border border-stone-200 rounded-lg p-1">
+                                            <button
+                                                onClick={() => setFilters({ ...filters, minBedrooms: Math.max(0, (filters.minBedrooms || 0) - 1) })}
+                                                className="w-6 h-6 rounded flex items-center justify-center bg-white text-stone-600 border border-stone-200 shadow-sm hover:border-emerald-500 transition disabled:opacity-50"
+                                                disabled={(filters.minBedrooms || 0) === 0}
+                                            >
+                                                -
+                                            </button>
+                                            <span className="text-sm font-bold w-4 text-center">{filters.minBedrooms || 0}</span>
+                                            <button
+                                                onClick={() => setFilters({ ...filters, minBedrooms: (filters.minBedrooms || 0) + 1 })}
+                                                className="w-6 h-6 rounded flex items-center justify-center bg-white text-stone-600 border border-stone-200 shadow-sm hover:border-emerald-500 transition"
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-medium text-stone-700">Min. Bathrooms</span>
+                                        <div className="flex items-center gap-3 bg-stone-50 border border-stone-200 rounded-lg p-1">
+                                            <button
+                                                onClick={() => setFilters({ ...filters, minBathrooms: Math.max(0, (filters.minBathrooms || 0) - 1) })}
+                                                className="w-6 h-6 rounded flex items-center justify-center bg-white text-stone-600 border border-stone-200 shadow-sm hover:border-emerald-500 transition disabled:opacity-50"
+                                                disabled={(filters.minBathrooms || 0) === 0}
+                                            >
+                                                -
+                                            </button>
+                                            <span className="text-sm font-bold w-4 text-center">{filters.minBathrooms || 0}</span>
+                                            <button
+                                                onClick={() => setFilters({ ...filters, minBathrooms: (filters.minBathrooms || 0) + 1 })}
+                                                className="w-6 h-6 rounded flex items-center justify-center bg-white text-stone-600 border border-stone-200 shadow-sm hover:border-emerald-500 transition"
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Amenities */}
+                                <div className="mb-8 border-t border-stone-100 pt-6">
+                                    <h4 className="font-bold text-stone-900 mb-3 text-sm uppercase tracking-wider">Amenities</h4>
+                                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                        {AMENITIES.map(f => (
+                                            <label key={f} className="flex items-center gap-3 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={(filters.features || []).includes(f)}
+                                                    onChange={() => toggleFilterArray('features', f)}
+                                                    className="w-4 h-4 accent-emerald-700 rounded"
+                                                />
+                                                <span className="text-stone-600 group-hover:text-stone-900 transition text-sm font-medium">{f}</span>
                                             </label>
                                         ))}
                                     </div>

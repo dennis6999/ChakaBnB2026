@@ -1,21 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
-import { Plus, Home, MapPin, UploadCloud, Loader, Star, X, Calendar, User, Clock, CheckCircle, MessageSquare } from 'lucide-react';
-import AlertModal from '../components/AlertModal';
+import { Plus, Home, MapPin, UploadCloud, Loader, Star, X, Calendar, User, Clock, CheckCircle, MessageSquare, TrendingUp, BarChart, DollarSign, Activity, Eye, EyeOff, Lock } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { format, subDays, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth } from 'date-fns';
+import AlertModal from '../components/AlertModal.jsx';
+import DatePicker from '../components/DatePicker.jsx';
+import { AMENITIES } from '../utils/constants.js';
 
 export default function HostDashboard({ user, navigateTo }) {
     const [myProperties, setMyProperties] = useState([]);
     const [reservations, setReservations] = useState([]);
     const [messages, setMessages] = useState([]);
-    const [activeTab, setActiveTab] = useState('properties'); // 'properties' | 'reservations' | 'messages'
+    const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' | 'properties' | 'reservations' | 'messages'
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
     const [showFormModal, setShowFormModal] = useState(false);
     const [propertyToEdit, setPropertyToEdit] = useState(null);
+    const [showBlockDatesModal, setShowBlockDatesModal] = useState(false);
+    const [propertyToBlock, setPropertyToBlock] = useState(null);
     const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '', type: 'error' });
 
     const showAlert = (message, title = 'Oops!', type = 'error') => {
         setAlertConfig({ isOpen: true, message, title, type });
+    };
+
+    const handleToggleActive = async (e, property) => {
+        e.stopPropagation();
+        setActionLoading(property.id + '-toggle');
+        try {
+            const newStatus = property.is_active === false ? true : false;
+            await api.togglePropertyVisibility(property.id, newStatus);
+            setMyProperties(prev => prev.map(p => p.id === property.id ? { ...p, is_active: newStatus } : p));
+            showAlert(newStatus ? 'Property is now visible to guests' : 'Property is now hidden from search', 'Visibility Updated', 'success');
+        } catch (err) {
+            console.error('Failed to toggle visibility:', err);
+            showAlert('Failed to update property visibility.');
+        } finally {
+            setActionLoading(null);
+        }
     };
 
     useEffect(() => {
@@ -58,6 +80,76 @@ export default function HostDashboard({ user, navigateTo }) {
         }
     };
 
+    // --- Analytics Calculations ---
+    const analytics = useMemo(() => {
+        if (!reservations || reservations.length === 0) {
+            return { totalRevenue: 0, totalBookings: 0, occupancyRate: 0, revenueData: [], statusData: [] };
+        }
+
+        const confirmed = reservations.filter(r => r.status === 'Confirmed' || r.status === 'Completed');
+        const totalRevenue = confirmed.reduce((sum, r) => sum + (Number(r.total_price) || 0), 0);
+        const totalBookings = reservations.length;
+
+        // Simple Occupancy Calculation (Days booked vs total possible property days for roughly 30 days)
+        const totalDaysBooked = confirmed.reduce((sum, r) => {
+            const start = new Date(r.check_in);
+            const end = new Date(r.check_out);
+            const diffTime = Math.abs(end - start);
+            return sum + Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }, 0);
+
+        const maxPossibleDays = Math.max(1, myProperties.length) * 30;
+        const occupancyRate = Math.min(100, Math.round((totalDaysBooked / maxPossibleDays) * 100));
+
+        // Group revenue by month for the chart
+        const revenueMap = {};
+        confirmed.forEach(r => {
+            const month = format(new Date(r.check_in), 'MMM yyyy');
+            revenueMap[month] = (revenueMap[month] || 0) + (Number(r.total_price) || 0);
+        });
+        const revenueData = Object.keys(revenueMap).map(month => ({
+            name: month,
+            revenue: revenueMap[month]
+        })).sort((a, b) => new Date(a.name) - new Date(b.name));
+
+        // Status Doughnut Data
+        const statusMap = { Confirmed: 0, Pending: 0, Cancelled: 0 };
+        reservations.forEach(r => {
+            if (statusMap[r.status] !== undefined) statusMap[r.status]++;
+            else statusMap[r.status] = 1;
+        });
+        const statusData = Object.keys(statusMap)
+            .filter(key => statusMap[key] > 0)
+            .map(key => ({ name: key, value: statusMap[key] }));
+
+        return { totalRevenue, totalBookings, occupancyRate, revenueData, statusData };
+    }, [reservations, myProperties]);
+
+    const timelineDays = useMemo(() => {
+        const start = new Date(); // Today
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 30); // 30 days ahead
+        return eachDayOfInterval({ start, end });
+    }, []);
+
+    const getBookingStatusForDay = (propertyId, day) => {
+        const activeRes = reservations.find(r => {
+            if (r.status !== 'Confirmed' && r.status !== 'Completed' && r.status !== 'HostBlock') return false;
+            // API returns properties wrapped or just property_id depending on join, let's check both
+            const rPropId = r.property_id || r.properties?.id;
+            if (rPropId !== propertyId) return false;
+            const checkIn = new Date(r.check_in);
+            checkIn.setHours(0, 0, 0, 0);
+            const checkOut = new Date(r.check_out);
+            checkOut.setHours(0, 0, 0, 0);
+            return day >= checkIn && day < checkOut;
+        });
+        return activeRes ? (activeRes.status === 'HostBlock' ? 'blocked' : 'booked') : 'free';
+    };
+
+    const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6b7280']; // Emerald, Orange, Red, Gray
+
     if (loading) {
         return (
             <div className="flex-1 flex justify-center items-center py-20">
@@ -86,9 +178,10 @@ export default function HostDashboard({ user, navigateTo }) {
             {/* Tabs */}
             <div className="flex border-b border-stone-200 mb-8 overflow-x-auto hide-scrollbar">
                 {[
-                    { id: 'properties', label: 'My Listings', count: myProperties.length },
-                    { id: 'reservations', label: 'Incoming Reservations', count: reservations.length },
-                    { id: 'messages', label: 'Inbox', count: messages.length }
+                    { id: 'analytics', label: 'Analytics Insights', count: null, icon: <TrendingUp className="w-4 h-4" /> },
+                    { id: 'properties', label: 'My Listings', count: myProperties.length, icon: <Home className="w-4 h-4" /> },
+                    { id: 'reservations', label: 'Reservations & Blocks', count: reservations.filter(r => r.status !== 'HostBlock').length || null, icon: <Calendar className="w-4 h-4" /> },
+                    { id: 'messages', label: 'Inbox', count: messages.length, icon: <MessageSquare className="w-4 h-4" /> }
                 ].map((tab) => (
                     <button
                         key={tab.id}
@@ -98,14 +191,187 @@ export default function HostDashboard({ user, navigateTo }) {
                             : 'border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300'
                             }`}
                     >
+                        {tab.icon}
                         {tab.label}
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === tab.id ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-500'
-                            }`}>
-                            {tab.count}
-                        </span>
+                        {tab.count !== null && (
+                            <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === tab.id ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-500'
+                                }`}>
+                                {tab.count}
+                            </span>
+                        )}
                     </button>
                 ))}
             </div>
+
+            {/* Tab Content: Analytics */}
+            {activeTab === 'analytics' && (
+                <div className="space-y-6">
+                    {/* KPI Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm flex items-center gap-5 hover:shadow-md transition">
+                            <div className="w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0">
+                                <DollarSign className="w-7 h-7 text-emerald-700" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-stone-500 uppercase tracking-wider mb-1">Total Revenue</p>
+                                <h3 className="text-3xl font-black text-stone-900">KES {analytics.totalRevenue.toLocaleString()}</h3>
+                            </div>
+                        </div>
+                        <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm flex items-center gap-5 hover:shadow-md transition">
+                            <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center shrink-0">
+                                <Activity className="w-7 h-7 text-orange-700" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-stone-500 uppercase tracking-wider mb-1">Occupancy Rate</p>
+                                <h3 className="text-3xl font-black text-stone-900">{analytics.occupancyRate}%</h3>
+                            </div>
+                        </div>
+                        <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm flex items-center gap-5 hover:shadow-md transition">
+                            <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center shrink-0">
+                                <Calendar className="w-7 h-7 text-blue-700" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-stone-500 uppercase tracking-wider mb-1">Total Bookings</p>
+                                <h3 className="text-3xl font-black text-stone-900">{analytics.totalBookings}</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Charts Row */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Revenue Area Chart */}
+                        <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm lg:col-span-2">
+                            <h3 className="text-lg font-black text-stone-900 mb-6 flex items-center gap-2">
+                                <BarChart className="w-5 h-5 text-emerald-600" /> Revenue Overview
+                            </h3>
+                            {analytics.revenueData.length > 0 ? (
+                                <div className="h-[300px] w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={analytics.revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                            <defs>
+                                                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280', fontWeight: 'bold' }} dy={10} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280', fontWeight: 'bold' }} tickFormatter={(val) => `KES ${val / 1000}k`} dx={-10} />
+                                            <RechartsTooltip
+                                                formatter={(value) => [`KES ${value.toLocaleString()}`, 'Revenue']}
+                                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                                            />
+                                            <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <div className="h-[300px] flex flex-col items-center justify-center text-stone-400 bg-stone-50 rounded-2xl border border-dashed border-stone-200">
+                                    <BarChart className="w-8 h-8 mb-2 opacity-50" />
+                                    <span className="font-medium text-sm">No revenue data yet</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Status Doughnut Chart */}
+                        <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm">
+                            <h3 className="text-lg font-black text-stone-900 mb-6">Booking Statuses</h3>
+                            {analytics.statusData.length > 0 ? (
+                                <div className="h-[300px] w-full relative">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={analytics.statusData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={80}
+                                                outerRadius={110}
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                                stroke="none"
+                                            >
+                                                {analytics.statusData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <RechartsTooltip
+                                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
+                                        <span className="text-4xl font-black text-stone-900">{analytics.totalBookings}</span>
+                                        <span className="text-xs font-bold text-stone-400 uppercase tracking-widest mt-1">Total</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="h-[300px] flex flex-col items-center justify-center text-stone-400 bg-stone-50 rounded-2xl border border-dashed border-stone-200">
+                                    <Activity className="w-8 h-8 mb-2 opacity-50" />
+                                    <span className="font-medium text-sm">No bookings yet</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Booking Timeline Grid */}
+                    <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-sm overflow-hidden">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+                            <h3 className="text-lg font-black text-stone-900 flex items-center gap-2">
+                                <Calendar className="w-5 h-5 text-blue-600" /> Availability Timeline (Next 30 Days)
+                            </h3>
+                            <div className="flex gap-4 text-xs font-bold text-stone-500">
+                                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-stone-50 border border-stone-200"></div> Available</div>
+                                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/30"></div> Booked</div>
+                                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-stone-400 opacity-60"></div> Blocked</div>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto custom-scrollbar pb-2">
+                            <div className="min-w-[800px]">
+                                {/* Header Row (Days) */}
+                                <div className="flex border-b border-stone-100 pb-2 mb-3 pl-40">
+                                    {timelineDays.map((day, i) => (
+                                        <div key={i} className="flex-1 text-center min-w-[28px] flex flex-col items-center">
+                                            <span className="text-[10px] font-bold text-stone-400 capitalize">{format(day, 'EEeeee').charAt(0)}</span>
+                                            <span className={`text-xs mt-1 font-black ${isSameDay(day, new Date()) ? 'bg-orange-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md' : 'text-stone-700'}`}>
+                                                {format(day, 'd')}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Property Rows */}
+                                {myProperties.length > 0 ? myProperties.map(property => (
+                                    <div key={property.id} className="flex items-center mb-1.5 group">
+                                        <div className="w-40 shrink-0 pr-4 truncate font-bold text-xs text-stone-600 group-hover:text-stone-900 transition flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded bg-stone-100 overflow-hidden shrink-0">
+                                                {property.image && <img src={property.image} className="w-full h-full object-cover" alt="" />}
+                                            </div>
+                                            <span className="truncate">{property.name}</span>
+                                        </div>
+                                        <div className="flex-1 flex gap-1">
+                                            {timelineDays.map((day, i) => {
+                                                const status = getBookingStatusForDay(property.id, day);
+                                                return (
+                                                    <div
+                                                        key={i}
+                                                        title={`${property.name} - ${format(day, 'MMM d')}: ${status.toUpperCase()}`}
+                                                        className={`flex-1 min-w-[28px] h-8 rounded-md transition-all duration-300 ${status === 'booked' ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20 z-10 scale-y-105' :
+                                                            status === 'blocked' ? 'bg-stone-400 opacity-60 z-10 scale-y-105' :
+                                                                'bg-stone-50 hover:bg-stone-100 border border-stone-100/50'}`}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="text-center py-8 text-stone-400 text-sm font-medium">No properties to display.</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Tab Content: Properties */}
             {activeTab === 'properties' && (
@@ -132,20 +398,27 @@ export default function HostDashboard({ user, navigateTo }) {
                                 <div key={property.id} className="bg-white border flex flex-col border-stone-200 rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-300 group">
                                     <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
                                         {property.image ? (
-                                            <img src={property.image} alt={property.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
+                                            <img src={property.image} alt={property.name} className={`w-full h-full object-cover transition duration-700 ${property.is_active === false ? 'grayscale opacity-50' : 'group-hover:scale-105'}`} />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center flex-col text-stone-400">
                                                 <Home className="w-8 h-8 mb-2 opacity-50" />
                                                 <span className="text-xs font-medium">No Image</span>
                                             </div>
                                         )}
-                                        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-2.5 py-1 rounded-full text-xs font-bold text-stone-900 shadow-sm">
-                                            {property.type}
+                                        <div className="absolute top-4 left-4 flex gap-2">
+                                            <div className="bg-white/90 backdrop-blur px-2.5 py-1 rounded-full text-xs font-bold text-stone-900 shadow-sm">
+                                                {property.type}
+                                            </div>
+                                            {property.is_active === false && (
+                                                <div className="bg-stone-900/90 text-white backdrop-blur px-2.5 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
+                                                    <EyeOff className="w-3 h-3" /> Hidden
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="p-5 flex-1 flex flex-col">
                                         <div className="flex justify-between items-start mb-2">
-                                            <h3 className="font-bold text-lg leading-tight line-clamp-1 group-hover:text-emerald-700 transition-colors">
+                                            <h3 className={`font-bold text-lg leading-tight line-clamp-1 transition-colors ${property.is_active === false ? 'text-stone-400' : 'group-hover:text-emerald-700'}`}>
                                                 {property.name}
                                             </h3>
                                             <div className="flex items-center gap-1 shrink-0 bg-stone-100 px-1.5 py-0.5 rounded-md">
@@ -162,7 +435,14 @@ export default function HostDashboard({ user, navigateTo }) {
                                                 KES {property.price.toLocaleString()}
                                                 <span className="text-xs font-medium text-stone-500 ml-1">/ night</span>
                                             </div>
-                                            <div className="flex gap-2">
+                                            <div className="flex gap-2 flex-wrap justify-end">
+                                                <button
+                                                    onClick={(e) => handleToggleActive(e, property)}
+                                                    disabled={actionLoading === property.id + '-toggle'}
+                                                    className={`px-3 py-1.5 font-bold rounded-lg text-xs transition border ${property.is_active === false ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'}`}
+                                                >
+                                                    {actionLoading === property.id + '-toggle' ? <Loader className="w-4 h-4 animate-spin inline" /> : (property.is_active === false ? 'Publish' : 'Hide')}
+                                                </button>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setPropertyToEdit(property); setShowFormModal(true); }}
                                                     className="px-3 py-1.5 bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900 font-bold rounded-lg text-xs transition"
@@ -171,9 +451,16 @@ export default function HostDashboard({ user, navigateTo }) {
                                                 </button>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); navigateTo('property', property.id); }}
-                                                    className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold rounded-lg text-xs transition"
+                                                    disabled={property.is_active === false}
+                                                    className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-lg text-xs transition disabled:opacity-50"
                                                 >
                                                     View
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setPropertyToBlock(property); setShowBlockDatesModal(true); }}
+                                                    className="px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 font-bold rounded-lg text-xs transition"
+                                                >
+                                                    Block
                                                 </button>
                                             </div>
                                         </div>
@@ -193,88 +480,186 @@ export default function HostDashboard({ user, navigateTo }) {
                             <div className="bg-stone-200 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Calendar className="text-stone-500 w-8 h-8" />
                             </div>
-                            <h3 className="text-xl font-bold text-stone-900 mb-2">No incoming reservations</h3>
+                            <h3 className="text-xl font-bold text-stone-900 mb-2">No reservations or blocked dates</h3>
                             <p className="text-stone-500 max-w-sm mx-auto">
-                                When guests book your properties, they will appear here. Ensure your listings have great photos to attract bookers!
+                                When guests book your properties, they will appear here. You can also block dates from your properties tab.
                             </p>
                         </div>
                     ) : (
-                        <div className="space-y-4">
-                            {reservations.map(res => (
-                                <div key={res.id} className="bg-white border border-stone-200 rounded-2xl p-5 flex flex-col md:flex-row gap-6 shadow-sm hover:shadow-md transition">
-                                    <div className="shrink-0 w-full md:w-48 aspect-video md:aspect-[4/3] rounded-xl overflow-hidden bg-stone-100">
-                                        {res.properties?.image ? (
-                                            <img src={res.properties.image} alt={res.properties.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <Home className="w-8 h-8 text-stone-300" />
+                        <div className="space-y-12">
+                            {reservations.filter(r => r.status !== 'HostBlock').length > 0 && (
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-black text-stone-900 mb-4 flex items-center gap-2">
+                                        <User className="w-5 h-5 text-emerald-600" /> Guest Bookings
+                                    </h3>
+                                    {reservations.filter(r => r.status !== 'HostBlock').map(res => (
+                                        <div key={res.id} className="bg-white border border-stone-200 rounded-2xl p-5 flex flex-col md:flex-row gap-6 shadow-sm hover:shadow-md transition">
+                                            <div className="shrink-0 w-full md:w-48 aspect-video md:aspect-[4/3] rounded-xl overflow-hidden bg-stone-100">
+                                                {res.properties?.image ? (
+                                                    <img src={res.properties.image} alt={res.properties.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Home className="w-8 h-8 text-stone-300" />
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-                                    <div className="flex-1 flex flex-col">
-                                        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-4">
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${res.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-800' :
-                                                        res.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
-                                                            'bg-orange-100 text-orange-800'
-                                                        }`}>
-                                                        {res.status || 'Pending'}
-                                                    </span>
-                                                    <span className="text-stone-400 text-xs font-medium">Ref: {res.id.split('-')[0].toUpperCase()}</span>
+                                            <div className="flex-1 flex flex-col">
+                                                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-4">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${res.status === 'HostBlock' ? 'bg-stone-200 text-stone-600' :
+                                                                res.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-800' :
+                                                                    res.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
+                                                                        'bg-orange-100 text-orange-800'
+                                                                }`}>
+                                                                {res.status === 'HostBlock' ? 'Blocked' : (res.status || 'Pending')}
+                                                            </span>
+                                                            <span className="text-stone-400 text-xs font-medium">Ref: {res.id.split('-')[0].toUpperCase()}</span>
+                                                        </div>
+                                                        <h3 className="font-bold text-xl text-stone-900 mb-2">
+                                                            {res.properties?.name || 'Unknown Property'}
+                                                        </h3>
+                                                        <div className="flex items-center gap-3 text-sm text-stone-600">
+                                                            <div className="flex items-center gap-1.5 bg-stone-50 px-2.5 py-1 rounded-lg">
+                                                                <Calendar className="w-4 h-4 text-emerald-600" />
+                                                                <span className="font-semibold text-stone-900">
+                                                                    {new Date(res.check_in).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' })} - {new Date(res.check_out).toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-left md:text-right bg-stone-50 p-4 rounded-xl border border-stone-100 shrink-0">
+                                                        {res.status === 'HostBlock' ? (
+                                                            <>
+                                                                <p className="text-xs text-stone-500 font-bold uppercase tracking-wider mb-1">Availability</p>
+                                                                <p className="font-black text-xl text-stone-700">Unavailable</p>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <p className="text-xs text-stone-500 font-bold uppercase tracking-wider mb-1">Total Payout</p>
+                                                                <p className="font-black text-2xl text-emerald-700">KES {res.total_price?.toLocaleString() || '0'}</p>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <h3 className="font-bold text-xl text-stone-900 mb-2">
-                                                    {res.properties?.name || 'Unknown Property'}
-                                                </h3>
-                                                <div className="flex items-center gap-3 text-sm text-stone-600">
-                                                    <div className="flex items-center gap-1.5 bg-stone-50 px-2.5 py-1 rounded-lg">
-                                                        <Calendar className="w-4 h-4 text-emerald-600" />
-                                                        <span className="font-semibold text-stone-900">
-                                                            {new Date(res.check_in).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' })} - {new Date(res.check_out).toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                        </span>
+
+                                                <div className="mt-auto flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-stone-100 pt-4 gap-4">
+                                                    <div className="flex items-center gap-2 text-sm">
+                                                        {res.status === 'HostBlock' ? (
+                                                            <>
+                                                                <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-600 font-bold shrink-0">
+                                                                    <Lock className="w-4 h-4" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-semibold text-stone-900">Blocked by You</p>
+                                                                    <p className="text-stone-500 text-xs">Manual block</p>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold shrink-0">
+                                                                    <User className="w-4 h-4" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-semibold text-stone-900">Guest User</p>
+                                                                    <p className="text-stone-500 text-xs text-ellipsis overflow-hidden max-w-[150px] sm:max-w-xs whitespace-nowrap">ID: {res.user_id.split('-')[0]}</p>
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                        {res.status === 'HostBlock' ? (
+                                                            <button
+                                                                onClick={() => handleUpdateStatus(res.id, 'Cancelled')}
+                                                                disabled={actionLoading === res.id}
+                                                                className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold border-2 border-stone-200 text-stone-700 hover:bg-stone-50 rounded-lg transition disabled:opacity-50"
+                                                            >
+                                                                {actionLoading === res.id ? 'Loading...' : 'Unblock Dates'}
+                                                            </button>
+                                                        ) : (
+                                                            <>
+                                                                {res.status !== 'Cancelled' && (
+                                                                    <button
+                                                                        onClick={() => handleUpdateStatus(res.id, 'Cancelled')}
+                                                                        disabled={actionLoading === res.id}
+                                                                        className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                                                                    >
+                                                                        {actionLoading === res.id ? 'Loading...' : 'Cancel'}
+                                                                    </button>
+                                                                )}
+                                                                {res.status !== 'Confirmed' && res.status !== 'Cancelled' && (
+                                                                    <button
+                                                                        onClick={() => handleUpdateStatus(res.id, 'Confirmed')}
+                                                                        disabled={actionLoading === res.id}
+                                                                        className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold bg-stone-900 text-white hover:bg-stone-800 rounded-lg transition disabled:opacity-50"
+                                                                    >
+                                                                        {actionLoading === res.id ? 'Loading...' : 'Approve'}
+                                                                    </button>
+                                                                )}
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="text-left md:text-right bg-stone-50 p-4 rounded-xl border border-stone-100 shrink-0">
-                                                <p className="text-xs text-stone-500 font-bold uppercase tracking-wider mb-1">Total Payout</p>
-                                                <p className="font-black text-2xl text-emerald-700">KES {res.total_price?.toLocaleString() || '0'}</p>
-                                            </div>
                                         </div>
-
-                                        <div className="mt-auto flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-stone-100 pt-4 gap-4">
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold shrink-0">
-                                                    <User className="w-4 h-4" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-stone-900">Guest User</p>
-                                                    <p className="text-stone-500 text-xs text-ellipsis overflow-hidden max-w-[150px] sm:max-w-xs whitespace-nowrap">ID: {res.user_id.split('-')[0]}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2 w-full sm:w-auto">
-                                                {res.status !== 'Cancelled' && (
-                                                    <button
-                                                        onClick={() => handleUpdateStatus(res.id, 'Cancelled')}
-                                                        disabled={actionLoading === res.id}
-                                                        className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
-                                                    >
-                                                        {actionLoading === res.id ? 'Loading...' : 'Cancel'}
-                                                    </button>
-                                                )}
-                                                {res.status !== 'Confirmed' && res.status !== 'Cancelled' && (
-                                                    <button
-                                                        onClick={() => handleUpdateStatus(res.id, 'Confirmed')}
-                                                        disabled={actionLoading === res.id}
-                                                        className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold bg-stone-900 text-white hover:bg-stone-800 rounded-lg transition disabled:opacity-50"
-                                                    >
-                                                        {actionLoading === res.id ? 'Loading...' : 'Approve'}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
+
+                            {reservations.filter(r => r.status === 'HostBlock').length > 0 && (
+                                <div className="space-y-4 pt-4 border-t border-stone-200">
+                                    <h3 className="text-lg font-black text-stone-900 mb-4 flex items-center gap-2">
+                                        <Lock className="w-5 h-5 text-stone-500" /> Blocked Dates
+                                    </h3>
+                                    {reservations.filter(r => r.status === 'HostBlock').map(res => (
+                                        <div key={res.id} className="bg-stone-50 border border-stone-200 rounded-2xl p-5 flex flex-col md:flex-row gap-6 shadow-sm hover:shadow-md transition">
+                                            <div className="flex-1 flex flex-col">
+                                                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-4">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-stone-200 text-stone-600">
+                                                                Blocked
+                                                            </span>
+                                                        </div>
+                                                        <h3 className="font-bold text-xl text-stone-900 mb-2">
+                                                            {res.properties?.name || 'Unknown Property'}
+                                                        </h3>
+                                                        <div className="flex items-center gap-3 text-sm text-stone-600">
+                                                            <div className="flex items-center gap-1.5 bg-white border border-stone-200 px-2.5 py-1 rounded-lg">
+                                                                <Calendar className="w-4 h-4 text-stone-500" />
+                                                                <span className="font-semibold text-stone-900">
+                                                                    {new Date(res.check_in).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' })} - {new Date(res.check_out).toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-auto flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-stone-200 pt-4 gap-4">
+                                                    <div className="flex items-center gap-2 text-sm">
+                                                        <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-stone-600 font-bold shrink-0">
+                                                            <Lock className="w-4 h-4" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-semibold text-stone-900">Blocked by You</p>
+                                                            <p className="text-stone-500 text-xs">Manual block</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                        <button
+                                                            onClick={() => handleUpdateStatus(res.id, 'Cancelled')}
+                                                            disabled={actionLoading === res.id}
+                                                            className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold border-2 border-stone-300 text-stone-700 hover:bg-white rounded-lg transition disabled:opacity-50 bg-white shadow-sm"
+                                                        >
+                                                            {actionLoading === res.id ? 'Loading...' : 'Unblock Dates'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </>
@@ -340,6 +725,21 @@ export default function HostDashboard({ user, navigateTo }) {
                 />
             )}
 
+            {/* Block Dates Modal */}
+            {showBlockDatesModal && propertyToBlock && (
+                <BlockDatesModal
+                    property={propertyToBlock}
+                    onClose={() => { setShowBlockDatesModal(false); setPropertyToBlock(null); }}
+                    onSuccess={(newBlock) => {
+                        setReservations(prev => [newBlock, ...prev]);
+                        setShowBlockDatesModal(false);
+                        setPropertyToBlock(null);
+                        showAlert('Dates successfully blocked.', 'Success', 'success');
+                    }}
+                    showAlert={showAlert}
+                />
+            )}
+
             <AlertModal
                 {...alertConfig}
                 onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
@@ -397,7 +797,7 @@ function PropertyFormModal({ user, editProperty, showAlert, onClose, onSuccess }
         };
     });
 
-    const ALL_FEATURES = ['Free WiFi', 'Free parking', 'Restaurant', 'Kitchen', 'Pool', 'Gym', 'Air conditioning', 'BBQ facilities', 'Pet friendly', 'Washing machine'];
+    const ALL_FEATURES = AMENITIES;
 
     const handleInput = (e) => {
         const { name, value } = e.target;
@@ -623,6 +1023,78 @@ function PropertyFormModal({ user, editProperty, showAlert, onClose, onSuccess }
                             </div>
                         </form>
                     )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function BlockDatesModal({ property, onClose, onSuccess, showAlert }) {
+    const [saving, setSaving] = useState(false);
+    const [checkIn, setCheckIn] = useState(null);
+    const [checkOut, setCheckOut] = useState(null);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            if (!checkIn || !checkOut) {
+                showAlert('Please select both a start and end date.');
+                setSaving(false);
+                return;
+            }
+
+            const startDate = checkIn.toLocaleDateString('en-CA');
+            const endDate = checkOut.toLocaleDateString('en-CA');
+
+            const result = await api.blockPropertyDates(
+                property.id,
+                startDate,
+                endDate
+            );
+
+            // Re-fetch or locally append property mock so `getBookingStatusForDay` works if properties join is expected by frontend.
+            const newBlock = { ...result, properties: property };
+            onSuccess(newBlock);
+        } catch (err) {
+            console.error('Failed to block dates:', err);
+            showAlert('Failed to block dates. See console active.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in duration-200">
+                <div className="flex justify-between items-center p-6 border-b border-stone-100">
+                    <h2 className="text-xl font-bold tracking-tight">Block Dates</h2>
+                    <button onClick={onClose} disabled={saving} className="p-2 hover:bg-stone-100 rounded-full transition disabled:opacity-50">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="p-6">
+                    <p className="text-stone-500 mb-6 text-sm">
+                        Select an exact date range to mark as unavailable for <strong>{property.name}</strong>. Guests won't be able to book during this period.
+                    </p>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="flex justify-center">
+                            <DatePicker
+                                checkIn={checkIn}
+                                checkOut={checkOut}
+                                onChange={(ci, co) => {
+                                    setCheckIn(ci);
+                                    setCheckOut(co);
+                                }}
+                            />
+                        </div>
+                        <div className="flex justify-end pt-4 gap-3 border-t border-stone-100">
+                            <button type="button" onClick={onClose} disabled={saving} className="px-6 py-3 rounded-xl font-bold text-stone-500 border border-stone-200 hover:bg-stone-50">Cancel</button>
+                            <button type="submit" disabled={saving || !checkIn || !checkOut} className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-700 disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-red-600/20 transition">
+                                {saving ? <><Loader className="w-4 h-4 animate-spin" /> Saving...</> : 'Block Dates'}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

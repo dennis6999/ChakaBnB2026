@@ -38,13 +38,18 @@ export default function App() {
     const [sortBy, setSortBy] = useState('top_picks');
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [bookingData, setBookingData] = useState(null);
+    const [profileTab, setProfileTab] = useState(() => localStorage.getItem('activeProfileTab') || 'trips');
 
     // --- NAVIGATION ---
-    const navigateTo = (view, propertyId = null) => {
+    const navigateTo = (view, propertyId = null, tab = null) => {
         const target = VALID_VIEWS.includes(view) ? view : '404';
         if (propertyId !== null) {
             setActivePropertyId(propertyId);
             localStorage.setItem('activePropertyId', String(propertyId));
+        }
+        if (tab !== null) {
+            setProfileTab(tab);
+            localStorage.setItem('activeProfileTab', tab);
         }
         setCurrentView(target);
         localStorage.setItem('currentView', target);
@@ -176,6 +181,17 @@ export default function App() {
         }
     };
 
+    const handleCancelBooking = async (bookingId) => {
+        try {
+            const updated = await api.cancelBooking(bookingId);
+            setMyBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'Cancelled' } : b));
+            showToast('Booking cancelled successfully.');
+        } catch (err) {
+            console.error('Cancellation failed:', err);
+            showToast('Failed to cancel the booking. Please try again.');
+        }
+    };
+
     const openSignIn = () => navigateTo('signin');
     const activeProperty = properties.find(p => p.id === activePropertyId) || null;
 
@@ -207,7 +223,7 @@ export default function App() {
                 {currentView === 'home' && <HomePage navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} />}
                 {currentView === 'search' && <SearchPage navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} filters={filters} setFilters={setFilters} sortBy={sortBy} setSortBy={setSortBy} onBook={handleBook} />}
                 {currentView === 'property' && <PropertyPage property={activeProperty} isFavorite={favorites.includes(activePropertyId)} onToggleFavorite={toggleFavorite} onBook={handleBook} navigateTo={navigateTo} favorites={favorites} toggleFavorite={toggleFavorite} searchFilters={filters} user={user} />}
-                {currentView === 'profile' && <ProfilePage navigateTo={navigateTo} myBookings={myBookings} favorites={favorites} properties={properties} user={user} onSignOut={handleSignOut} onSignIn={openSignIn} />}
+                {currentView === 'profile' && <ProfilePage initialTab={profileTab} navigateTo={navigateTo} myBookings={myBookings} favorites={favorites} properties={properties} user={user} onSignOut={handleSignOut} onSignIn={openSignIn} onCancelBooking={handleCancelBooking} onUpdateUser={handleUpdateUser} />}
                 {currentView === 'host' && <HostDashboard user={user} navigateTo={navigateTo} />}
                 {currentView === 'confirmation' && <ConfirmationPage booking={lastBooking} onNavigate={navigateTo} />}
                 {currentView === '404' && <NotFoundPage navigateTo={navigateTo} />}

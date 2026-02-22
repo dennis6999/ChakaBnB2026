@@ -5,7 +5,7 @@ export const api = {
 
     // Fetch all properties
     getProperties: async () => {
-        const { data, error } = await supabase.from('properties').select('*');
+        const { data, error } = await supabase.from('properties').select('*').eq('is_active', true);
         if (error) {
             console.error("Error fetching properties:", error);
             throw error;
@@ -56,6 +56,18 @@ export const api = {
     // Update an existing property
     updateProperty: async (propertyId, propertyData) => {
         const { data, error } = await supabase.from('properties').update(propertyData).eq('id', propertyId).select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    // Toggle property visibility (Host action)
+    togglePropertyVisibility: async (propertyId, isActive) => {
+        const { data, error } = await supabase
+            .from('properties')
+            .update({ is_active: isActive })
+            .eq('id', propertyId)
+            .select()
+            .single();
         if (error) throw error;
         return data;
     },
@@ -154,6 +166,23 @@ export const api = {
         if (error) throw error;
     },
 
+    // Update User Profile Metadata
+    updateUserProfile: async (name, phone) => {
+        const { data, error } = await supabase.auth.updateUser({
+            data: { name, phone }
+        });
+        if (error) throw error;
+
+        const user = data.user;
+        return {
+            id: user.id,
+            name: user.user_metadata?.name || user.email.split('@')[0],
+            email: user.email,
+            phone: user.user_metadata?.phone,
+            initials: (user.user_metadata?.name || user.email).charAt(0).toUpperCase()
+        };
+    },
+
     // ---- BOOKINGS ----
 
     // Fetch user bookings
@@ -189,6 +218,39 @@ export const api = {
             .select()
             .single();
 
+        if (error) throw error;
+        return data;
+    },
+
+    // Cancel a booking (Guest action)
+    cancelBooking: async (bookingId) => {
+        const { data, error } = await supabase
+            .from('bookings')
+            .update({ status: 'Cancelled' })
+            .eq('id', bookingId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    // Block dates (Host action)
+    blockPropertyDates: async (propertyId, checkIn, checkOut) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Must be logged in.");
+
+        const payload = {
+            user_id: user.id,
+            property_id: propertyId,
+            check_in: checkIn,
+            check_out: checkOut,
+            rooms: 1,
+            total_price: 0,
+            status: 'HostBlock'
+        };
+
+        const { data, error } = await supabase.from('bookings').insert([payload]).select().single();
         if (error) throw error;
         return data;
     },

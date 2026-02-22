@@ -24,7 +24,8 @@ CREATE TABLE properties (
     image TEXT,
     gallery TEXT[],
     latitude NUMERIC,
-    longitude NUMERIC
+    longitude NUMERIC,
+    is_active BOOLEAN DEFAULT true
 );
 
 CREATE TABLE reviews (
@@ -66,6 +67,15 @@ ON bookings FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can view their own bookings." 
 ON bookings FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Hosts can update bookings for their properties." 
+ON bookings FOR UPDATE USING (
+    EXISTS (
+        SELECT 1 FROM properties 
+        WHERE properties.id = bookings.property_id 
+        AND properties.host_id = auth.uid()
+    )
+);
 
 
 -- 3. Seed Initial Mock Data

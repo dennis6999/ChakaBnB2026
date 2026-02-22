@@ -9,7 +9,7 @@ export default function Navbar({ navigateTo, bookingCount, hostBookingCount = 0,
     // We can track active path using window.location.pathname if we used React Router, 
     // but here we just pass a simple active state or rely on App.jsx state if it was passed.
     // For now, we'll let the user tap and just route.
-    const go = (view, id = null) => { navigateTo(view, id); };
+    const go = (view, id = null, tab = null) => { navigateTo(view, id, tab); };
 
     return (
         <>
@@ -92,7 +92,7 @@ export default function Navbar({ navigateTo, bookingCount, hostBookingCount = 0,
                 </button>
 
                 <button
-                    onClick={() => go('profile')} // Assuming profile handles "Saved" tab
+                    onClick={() => go('profile', null, 'saved')}
                     className="flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
                 >
                     <Heart className="w-6 h-6 mb-1" />
@@ -115,7 +115,7 @@ export default function Navbar({ navigateTo, bookingCount, hostBookingCount = 0,
                 )}
 
                 <button
-                    onClick={() => go('profile')} // Assuming profile handles "Trips" tab
+                    onClick={() => go('profile', null, 'trips')}
                     className="relative flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
                 >
                     <History className="w-6 h-6 mb-1" />
@@ -128,7 +128,7 @@ export default function Navbar({ navigateTo, bookingCount, hostBookingCount = 0,
                 </button>
 
                 <button
-                    onClick={() => user ? go('profile') : onAuthClick()}
+                    onClick={() => user ? go('profile', null, 'account') : onAuthClick()}
                     className="flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
                 >
                     {user ? (

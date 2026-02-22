@@ -1,8 +1,28 @@
 import React, { useState } from 'react';
-import { History, Heart, Settings, CreditCard, LogOut, Calendar, MapPin, LogIn } from 'lucide-react';
+import { History, Heart, Settings, CreditCard, LogOut, Calendar, MapPin, LogIn, Loader } from 'lucide-react';
 
-export default function ProfilePage({ navigateTo, myBookings, favorites, properties, user, onSignOut, onSignIn }) {
-    const [activeTab, setActiveTab] = useState('trips');
+export default function ProfilePage({ navigateTo, initialTab = 'trips', myBookings, favorites, properties, user, onSignOut, onSignIn, onCancelBooking, onUpdateUser }) {
+    const [activeTab, setActiveTab] = useState(initialTab);
+
+    React.useEffect(() => {
+        if (initialTab) setActiveTab(initialTab);
+    }, [initialTab]);
+
+    const [cancelingId, setCancelingId] = useState(null);
+    const [savingProfile, setSavingProfile] = useState(false);
+
+    // Controlled inputs for profile
+    const [profileForm, setProfileForm] = useState({
+        name: user?.name || '',
+        phone: user?.phone || ''
+    });
+
+    const handleCancel = async (bookingId) => {
+        if (!window.confirm("Are you sure you want to cancel this booking? This action cannot be undone.")) return;
+        setCancelingId(bookingId);
+        await onCancelBooking(bookingId);
+        setCancelingId(null);
+    };
 
     const savedProperties = properties.filter((p) => favorites.includes(p.id));
 
@@ -16,6 +36,15 @@ export default function ProfilePage({ navigateTo, myBookings, favorites, propert
         { id: 'account', label: 'Account Info', icon: <Settings className="w-5 h-5" /> },
         { id: 'payment', label: 'Payments', icon: <CreditCard className="w-5 h-5" /> },
     ];
+
+    const handleProfileSubmit = async (e) => {
+        e.preventDefault();
+        setSavingProfile(true);
+        if (onUpdateUser) {
+            await onUpdateUser(profileForm.name, profileForm.phone);
+        }
+        setSavingProfile(false);
+    };
 
     // Guest (not logged in) state
     if (!user) {
@@ -128,6 +157,17 @@ export default function ProfilePage({ navigateTo, myBookings, favorites, propert
                                                     <div className="text-xs font-mono text-stone-400 mt-2">
                                                         ID: {booking.bookingId || booking.id?.split('-')[0]?.toUpperCase()}
                                                     </div>
+                                                    {booking.status === 'Confirmed' && (
+                                                        <div className="mt-4 flex justify-end shrink-0 w-full sm:w-auto">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleCancel(booking.id); }}
+                                                                disabled={cancelingId === booking.id}
+                                                                className="px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 hover:border-red-100 border border-transparent rounded-lg transition disabled:opacity-50 flex items-center gap-2"
+                                                            >
+                                                                {cancelingId === booking.id ? <><Loader className="w-4 h-4 animate-spin" /> Canceling...</> : 'Cancel Booking'}
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -166,28 +206,45 @@ export default function ProfilePage({ navigateTo, myBookings, favorites, propert
                         {activeTab === 'account' && (
                             <div className="animate-in fade-in max-w-lg">
                                 <h2 className="text-2xl font-black text-stone-900 mb-6">Account Information</h2>
-                                <div className="space-y-4">
-                                    {[
-                                        { label: 'Legal Name', type: 'text', value: displayName },
-                                        { label: 'Email Address', type: 'email', value: displayEmail },
-                                        { label: 'Phone Number', type: 'tel', value: user?.phone || '' },
-                                    ].map((field) => (
-                                        <div key={field.label}>
-                                            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">
-                                                {field.label}
-                                            </label>
-                                            <input
-                                                type={field.type}
-                                                defaultValue={field.value}
-                                                placeholder={field.value ? undefined : 'Not provided'}
-                                                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                            />
-                                        </div>
-                                    ))}
-                                    <button className="mt-4 bg-emerald-900 text-white font-bold px-6 py-3 rounded-xl shadow hover:bg-emerald-800 transition">
-                                        Save Changes
+                                <form onSubmit={handleProfileSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Legal Name</label>
+                                        <input
+                                            type="text"
+                                            value={profileForm.name}
+                                            onChange={(e) => setProfileForm(f => ({ ...f, name: e.target.value }))}
+                                            required
+                                            className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Email Address</label>
+                                        <input
+                                            type="email"
+                                            value={displayEmail}
+                                            disabled
+                                            className="w-full bg-stone-100 border border-stone-200 rounded-xl px-4 py-3 font-semibold text-stone-500 cursor-not-allowed"
+                                        />
+                                        <p className="text-xs text-stone-400 mt-1">Email cannot be changed directly.</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1.5">Phone Number</label>
+                                        <input
+                                            type="tel"
+                                            value={profileForm.phone}
+                                            onChange={(e) => setProfileForm(f => ({ ...f, phone: e.target.value }))}
+                                            placeholder="e.g. 0712345678"
+                                            className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={savingProfile}
+                                        className="mt-4 bg-emerald-900 text-white font-bold px-6 py-3 rounded-xl shadow hover:bg-emerald-800 transition disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                        {savingProfile ? <><Loader className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Changes'}
                                     </button>
-                                </div>
+                                </form>
                             </div>
                         )}
 
