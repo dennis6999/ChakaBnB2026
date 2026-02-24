@@ -11,7 +11,7 @@ export default function Footer({ navigateTo }) {
     };
 
     return (
-        <footer className="bg-stone-900 text-stone-400 py-16 border-t-4 border-emerald-900 mt-auto">
+        <footer className="bg-stone-900 text-stone-400 pt-16 pb-32 md:pb-16 border-t-4 border-emerald-900 mt-auto">
             <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
                 <div className="md:col-span-2">
                     <div className="text-2xl font-black text-white flex items-center gap-2 mb-4 opacity-90">
