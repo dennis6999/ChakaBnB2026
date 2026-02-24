@@ -301,6 +301,8 @@ export const api = {
             .single();
 
         if (error) throw error;
+        // If RLS blocked the update, data will be null
+        if (!data) throw new Error("Booking not found or you don't have permission to cancel it.");
         return data;
     },
 
@@ -358,7 +360,9 @@ export const api = {
         const { data, error } = await supabase.from('bookings').insert([payload]).select().single();
         if (error) throw error;
 
-        // Trigger transactional email receipt via Edge Function asynchronously
+        // Trigger transactional email receipt via Edge Function asynchronously.
+        // IMPORTANT: Use 'data.total_price' (server-confirmed, post-trigger value),
+        // NOT 'payload.total_price' (client-supplied, pre-trigger value).
         try {
             supabase.functions.invoke('send-email', {
                 body: {
@@ -367,7 +371,7 @@ export const api = {
                     propertyName: bookingDetails.name,
                     checkIn: payload.check_in,
                     checkOut: payload.check_out,
-                    totalPrice: payload.total_price
+                    totalPrice: data.total_price  // Use server-calculated price from DB
                 }
             }).then(({ error: edgeError }) => {
                 if (edgeError) console.error("Edge function email error:", edgeError);

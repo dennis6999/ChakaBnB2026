@@ -4,8 +4,10 @@ import { X, MapPin, Loader } from 'lucide-react';
 const formatDate = (d) =>
     d ? new Date(d).toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Flexible Dates';
 
-export default function BookingModal({ property, onConfirm, onClose }) {
-    const [loading, setLoading] = useState(false);
+export default function BookingModal({ property, onConfirm, onClose, isLoading: parentLoading = false }) {
+    const [localLoading, setLocalLoading] = useState(false);
+    // Either the parent is submitting (real network request) or local animation is running
+    const loading = parentLoading || localLoading;
 
     if (!property) return null;
 
@@ -28,12 +30,13 @@ export default function BookingModal({ property, onConfirm, onClose }) {
     const taxes = isDynamicBooking ? (property.rooms || 1) * 450 : 450;
 
     const handleConfirm = () => {
-        setLoading(true);
+        if (loading) return; // Extra guard: prevent processing if already in flight
+        setLocalLoading(true);
         setTimeout(() => {
             onConfirm();
-            // We do not setLoading(false) here because usually modifying parent state closes the modal.
+            // We do not setLocalLoading(false) here because usually modifying parent state closes the modal.
             // If it doesn't, it unmounts anyway.
-        }, 1200);
+        }, 800);
     };
 
     return (

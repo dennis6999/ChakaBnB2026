@@ -49,6 +49,7 @@ function AppContent() {
     const [sortBy, setSortBy] = useState('top_picks');
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [bookingData, setBookingData] = useState(null);
+    const [isBookingInProgress, setIsBookingInProgress] = useState(false);
     const [profileTab, setProfileTab] = useState(() => localStorage.getItem('activeProfileTab') || 'trips');
 
     // --- NAVIGATION CONTROLLER ---
@@ -210,6 +211,10 @@ function AppContent() {
     };
 
     const confirmBooking = async () => {
+        // Guard against double-submission from rapid clicks
+        if (isBookingInProgress) return;
+        setIsBookingInProgress(true);
+
         const property = properties.find(p => p.id === activePropertyId);
         const totalP = bookingData?.totalPrice || (property ? property.price + 450 : 0);
         const payload = {
@@ -230,6 +235,8 @@ function AppContent() {
             console.error('Booking failed:', err);
             showToast('Failed to book the property. Please try again.');
             setShowBookingModal(false);
+        } finally {
+            setIsBookingInProgress(false);
         }
     };
 
@@ -286,7 +293,7 @@ function AppContent() {
                 </Routes>
             </main>
             <Footer navigateTo={navigateTo} />
-            {showBookingModal && activeProperty && <BookingModal property={bookingData || activeProperty} onConfirm={confirmBooking} onClose={() => setShowBookingModal(false)} />}
+            {showBookingModal && activeProperty && <BookingModal property={bookingData || activeProperty} onConfirm={confirmBooking} onClose={() => setShowBookingModal(false)} isLoading={isBookingInProgress} />}
             {showAuthModal && <AuthModal initialTab={authTab} onAuth={handleAuth} onClose={() => setShowAuthModal(false)} />}
             <Toast message={toastMessage} onClose={() => setToastMessage('')} />
             <ScrollToTop />
