@@ -154,12 +154,11 @@ function AppContent() {
         }
     }, [window.location.pathname]);
 
-    // --- HANDLERS ---
     const handleAuth = (userData) => {
         setUser(userData);
         setShowAuthModal(false);
         showToast(`Welcome back, ${userData.name}! 👋`);
-        if (currentView === 'signin') {
+        if (window.location.pathname === '/signin') {
             navigateTo('home');
         }
         loadUserData(userData);
