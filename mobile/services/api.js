@@ -1,0 +1,478 @@
+import { supabase } from './supabase';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
+
+WebBrowser.maybeCompleteAuthSession();
+
+export const api = {
+    // ---- PROPERTIES ----
+
+    // Fetch all properties
+    getProperties: async () => {
+        const { data, error } = await supabase.from('properties').select('*').eq('is_active', true);
+        if (error) {
+            console.error("Error fetching properties:", error);
+            throw error;
+        }
+        return data;
+    },
+
+    // Fetch a single property by ID
+    getPropertyById: async (id) => {
+        const { data, error } = await supabase.from('properties').select('*').eq('id', id).single();
+        if (error) throw error;
+        return data;
+    },
+
+    // Fetch similar properties
+    getSimilarProperties: async (id, type) => {
+        let { data, error } = await supabase
+            .from('properties')
+            .select('*')
+            .neq('id', id)
+            .eq('type', type)
+            .limit(3);
+
+        if (error) throw error;
+
+        // Fallback if not enough similar type
+        if (!data || data.length === 0) {
+            const fallback = await supabase.from('properties').select('*').neq('id', id).limit(3);
+            return fallback.data || [];
+        }
+        return data;
+    },
+
+    // Fetch properties for a specific host
+    getHostProperties: async (hostId) => {
+        const { data, error } = await supabase.from('properties').select('*').eq('host_id', hostId);
+        if (error) throw error;
+        return data || [];
+    },
+
+    // Create a new property
+    createProperty: async (propertyData) => {
+        const { data, error } = await supabase.from('properties').insert([propertyData]).select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    // Update an existing property
+    updateProperty: async (propertyId, propertyData) => {
+        const { data, error } = await supabase.from('properties').update(propertyData).eq('id', propertyId).select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    // Toggle property visibility (Host action)
+    togglePropertyVisibility: async (propertyId, isActive) => {
+        const { data, error } = await supabase
+            .from('properties')
+            .update({ is_active: isActive })
+            .eq('id', propertyId)
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    // ---- REVIEWS ----
+
+    // Fetch reviews for a specific property
+    getPropertyReviews: async (propertyId) => {
+        const { data, error } = await supabase.from('reviews').select('*').eq('property_id', propertyId).order('id', { ascending: false });
+        if (error) throw error;
+        return data || [];
+    },
+
+    // Submit a new review
+    submitReview: async (propertyId, userName, rating, comment) => {
+        const { data: session } = await supabase.auth.getSession();
+        if (!session?.session?.user) throw new Error("Must be logged in to review.");
+        const userId = session.session.user.id;
+
+        // 1. Check if the user is the host
+        const { data: prop } = await supabase
+            .from('properties')
+            .select('host_id')
+            .eq('id', propertyId)
+            .single();
+        if (prop?.host_id === userId) {
+            throw new Error("Hosts cannot review their own properties.");
+        }
+
+        // 2. Check if user actually stayed there
+        const { data: stays } = await supabase
+            .from('bookings')
+            .select('id')
+            .eq('property_id', propertyId)
+            .eq('user_id', userId)
+            .eq('status', 'Completed');
+
+        if (!stays || stays.length === 0) {
+            throw new Error("You can only review properties you have stayed at (Completed booking).");
+        }
+
+        const date = new Date().toLocaleDateString('en-KE', { month: 'long', year: 'numeric' });
+        const { data, error } = await supabase
+            .from('reviews')
+            .insert([{ property_id: propertyId, user_name: userName, rating, date, comment }])
+            .select()
+            .single();
+        if (error) throw error;
+
+        // Recalculate avg rating and update the property
+        const { data: allReviews } = await supabase.from('reviews').select('rating').eq('property_id', propertyId);
+        if (allReviews && allReviews.length > 0) {
+            const avg = allReviews.reduce((sum, r) => sum + Number(r.rating), 0) / allReviews.length;
+            await supabase.from('properties').update({
+                rating: Math.round(avg * 10) / 10,
+                reviews: allReviews.length
+            }).eq('id', propertyId);
+        }
+        return data;
+    },
+
+    // ---- AUTH / USERS ----
+
+    // Real Supabase login
+    login: async (email, password) => {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        return {
+            id: data.user.id,
+            name: data.user.user_metadata?.name || email.split('@')[0],
+            email: data.user.email,
+            initials: (data.user.user_metadata?.name || email).charAt(0).toUpperCase()
+        };
+    },
+
+    // Real Supabase signup
+    signup: async (name, email, password) => {
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: { name }
+            }
+        });
+        if (error) throw error;
+        if (!data.user) throw new Error("Sign up failed or user already exists.");
+        if (data.user?.identities?.length === 0) {
+            throw new Error("An account with this email already exists.");
+        }
+        return {
+            id: data.user.id,
+            name: name || email.split('@')[0],
+            email: data.user.email,
+            initials: (name || email).charAt(0).toUpperCase()
+        };
+    },
+
+    // Sign in with Google OAuth
+    signInWithGoogle: async () => {
+        const redirectUrl = makeRedirectUri({
+            scheme: 'mobile',
+            path: 'auth/callback',
+        });
+        console.log("Supabase OAuth Redirect URL (Allow-list this!):", redirectUrl);
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: redirectUrl
+            }
+        });
+        if (error) throw error;
+
+        if (data?.url) {
+            const result = await WebBrowser.openAuthSessionAsync(
+                data.url,
+                redirectUrl
+            );
+
+            if (result.type === 'success') {
+                // Provide the URL to the Supabase client to parse the token
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSessionFromUrl({ url: result.url });
+                if (sessionError) throw sessionError;
+                return sessionData;
+            } else {
+                throw new Error("Google sign in was cancelled.");
+            }
+        }
+    },
+
+    // Get current session user
+    getCurrentUser: async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        return {
+            id: user.id,
+            name: user.user_metadata?.name || user.email.split('@')[0],
+            email: user.email,
+            initials: (user.user_metadata?.name || user.email).charAt(0).toUpperCase()
+        };
+    },
+
+    // Sign out
+    logout: async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+    },
+
+    // Update User Profile Metadata
+    updateUserProfile: async (name, phone) => {
+        const { data, error } = await supabase.auth.updateUser({
+            data: { name, phone }
+        });
+        if (error) throw error;
+
+        const user = data.user;
+        return {
+            id: user.id,
+            name: user.user_metadata?.name || user.email.split('@')[0],
+            email: user.email,
+            phone: user.user_metadata?.phone,
+            initials: (user.user_metadata?.name || user.email).charAt(0).toUpperCase()
+        };
+    },
+
+    // ---- BOOKINGS ----
+
+    // Fetch user bookings
+    getUserBookings: async (userId) => {
+        const { data, error } = await supabase
+            .from('bookings')
+            .select('*, properties(*)')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        // Hide bookings made on the host's own properties (blocks)
+        return (data || []).filter(booking => booking.properties?.host_id !== userId);
+    },
+
+    // Fetch messages received for a host's properties
+    getHostMessages: async (hostId) => {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*, properties!inner(id, name, host_id)')
+            .eq('properties.host_id', hostId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('getHostMessages error:', error);
+            return [];
+        }
+        // Reshape to the format HostDashboard expects
+        return (data || []).map(msg => ({
+            ...msg,
+            guest_name: msg.sender_name,
+            message: msg.content,
+        }));
+    },
+
+    // Fetch total unread message count for a user (either as host or guest)
+    getUnreadMessageCount: async (userId) => {
+        const { count, error } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('receiver_id', userId)
+            .eq('read', false);
+
+        if (error) {
+            console.error('getUnreadMessageCount error:', error);
+            return 0;
+        }
+        return count || 0;
+    },
+
+    // Fetch incoming reservations for a host
+    getHostReservations: async (hostId) => {
+        const { data, error } = await supabase
+            .from('bookings')
+            .select('*, properties!inner(*)')
+            .eq('properties.host_id', hostId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    // Update booking status
+    updateBookingStatus: async (bookingId, status) => {
+        const { data, error } = await supabase
+            .from('bookings')
+            .update({ status })
+            .eq('id', bookingId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    // Cancel a booking (Guest action)
+    cancelBooking: async (bookingId) => {
+        const { data, error } = await supabase
+            .from('bookings')
+            .update({ status: 'Cancelled' })
+            .eq('id', bookingId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    // Delete a booking (Unblock action)
+    deleteBooking: async (bookingId) => {
+        const { error } = await supabase
+            .from('bookings')
+            .delete()
+            .eq('id', bookingId);
+
+        if (error) throw error;
+        return true;
+    },
+
+    // Block dates (Host action)
+    blockPropertyDates: async (propertyId, checkIn, checkOut) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Must be logged in.");
+
+        const payload = {
+            user_id: user.id,
+            property_id: propertyId,
+            check_in: checkIn,
+            check_out: checkOut,
+            rooms: 1,
+            total_price: 0,
+            status: 'HostBlock'
+        };
+
+        const { data, error } = await supabase.from('bookings').insert([payload]).select().single();
+        if (error) throw error;
+        return data;
+    },
+
+    // Submit a new booking
+    createBooking: async (bookingDetails) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("You must be logged in to book.");
+
+        // Prevent self-booking
+        if (bookingDetails.host_id === user.id) {
+            throw new Error("Hosts cannot book their own properties.");
+        }
+
+        const payload = {
+            user_id: user.id,
+            property_id: bookingDetails.id,
+            check_in: bookingDetails.checkInStr || new Date().toISOString(),
+            check_out: bookingDetails.checkOutStr || new Date(Date.now() + 86400000).toISOString(),
+            rooms: bookingDetails.rooms || 1,
+            total_price: bookingDetails.totalPrice || bookingDetails.price,
+            status: 'Pending'
+        };
+
+        const { data, error } = await supabase.from('bookings').insert([payload]).select().single();
+        if (error) throw error;
+
+        // Trigger transactional email receipt via Edge Function asynchronously
+        try {
+            supabase.functions.invoke('send-email', {
+                body: {
+                    guestEmail: user.email,
+                    guestName: user.user_metadata?.name || user.email.split('@')[0],
+                    propertyName: bookingDetails.name,
+                    checkIn: payload.check_in,
+                    checkOut: payload.check_out,
+                    totalPrice: payload.total_price
+                }
+            }).then(({ error: edgeError }) => {
+                if (edgeError) console.error("Edge function email error:", edgeError);
+            }).catch(err => console.error("Edge function fetch error:", err));
+        } catch (e) {
+            console.error("Failed to trigger email notification:", e);
+        }
+
+        // Return constructed booking object expecting by the frontend App state
+        return {
+            ...bookingDetails, // Original property details
+            ...data,           // Merge with db booking row
+            bookingId: data.id.split('-')[0].toUpperCase(), // Short friendly ID
+            date: new Date(data.created_at).toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' })
+        };
+    },
+
+    // ---- STORAGE ----
+
+    // Upload an image to the property-images bucket
+    uploadPropertyImage: async (file, path) => {
+        const { data, error } = await supabase.storage
+            .from('property-images')
+            .upload(path, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('property-images')
+            .getPublicUrl(path);
+
+        return publicUrl;
+    },
+
+    // ---- MESSAGING ----
+
+    // Send a message
+    sendMessage: async (propertyId, receiverId, receiverName, content) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Must be logged in to send messages.");
+
+        const payload = {
+            property_id: propertyId,
+            sender_id: user.id,
+            receiver_id: receiverId,
+            sender_name: user.user_metadata?.name || user.email.split('@')[0],
+            receiver_name: receiverName,
+            content: content
+        };
+        const { error } = await supabase.from('messages').insert([payload]);
+        if (error) throw error;
+    },
+
+    // Fetch all messages involving the current user (used to build Inbox)
+    getUserConversations: async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return [];
+
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*, properties(id, name, image)')
+            .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    // Mark messages in a specific conversation as read
+    markMessagesAsRead: async (otherUserId, propertyId) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { error } = await supabase
+            .from('messages')
+            .update({ read: true })
+            .eq('sender_id', otherUserId)
+            .eq('receiver_id', user.id)
+            .eq('property_id', propertyId)
+            .eq('read', false);
+
+        if (error) throw error;
+    }
+};
