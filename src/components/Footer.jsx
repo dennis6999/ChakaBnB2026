@@ -29,8 +29,8 @@ export default function Footer({ navigateTo }) {
                     </p>
 
                     {/* Newsletter */}
-                    <div className="bg-stone-900/50 p-6 rounded-2xl border border-stone-800 backdrop-blur-sm">
-                        <p className="text-white font-bold text-sm mb-3">Get exclusive deals in your inbox</p>
+                    <div className="bg-stone-900/50 p-5 rounded-2xl border border-stone-800 backdrop-blur-sm">
+                        <p className="text-white font-bold text-sm mb-2">Get exclusive deals in your inbox</p>
                         {subscribed ? (
                             <p className="text-emerald-400 font-bold text-sm flex items-center gap-2">
                                 <span className="w-5 h-5 bg-emerald-500/20 text-emerald-400 flex items-center justify-center rounded-full">✓</span>
@@ -43,11 +43,11 @@ export default function Footer({ navigateTo }) {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="your@email.com"
-                                    className="flex-1 bg-stone-950 border border-stone-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-stone-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition min-w-0"
+                                    className="flex-1 bg-stone-950 border border-stone-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-stone-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition min-w-0"
                                 />
                                 <button
                                     type="submit"
-                                    className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl transition flex items-center gap-2 text-sm font-bold flex-shrink-0 shadow-lg shadow-orange-600/20"
+                                    className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm font-bold flex-shrink-0 shadow-md shadow-orange-600/20"
                                 >
                                     <Send className="w-4 h-4" /> Subscribe
                                 </button>
@@ -57,9 +57,9 @@ export default function Footer({ navigateTo }) {
                 </div>
 
                 {/* Explore Links (Span 2) */}
-                <div className="md:col-span-2 md:col-start-7">
-                    <h4 className="text-white font-black mb-6 uppercase tracking-widest text-xs">Explore</h4>
-                    <ul className="space-y-4 text-sm font-medium">
+                <div className="md:col-span-2 md:col-start-6">
+                    <h4 className="text-white font-black mb-4 uppercase tracking-widest text-[11px]">Explore</h4>
+                    <ul className="space-y-3 text-sm font-medium">
                         <li><button onClick={() => navigateTo('search')} className={linkCls}>All Properties</button></li>
                         <li><span onClick={() => navigateTo('search')} className={linkCls}>Ranches & Camps</span></li>
                         <li><span onClick={() => navigateTo('search')} className={linkCls}>Town Apartments</span></li>
@@ -70,8 +70,8 @@ export default function Footer({ navigateTo }) {
 
                 {/* Support Links (Span 2) */}
                 <div className="md:col-span-2">
-                    <h4 className="text-white font-black mb-6 uppercase tracking-widest text-xs">Support</h4>
-                    <ul className="space-y-4 text-sm font-medium">
+                    <h4 className="text-white font-black mb-4 uppercase tracking-widest text-[11px]">Support</h4>
+                    <ul className="space-y-3 text-sm font-medium">
                         <li><span className={linkCls}>Help Center</span></li>
                         <li><span className={linkCls}>Cancellation Options</span></li>
                         <li><button onClick={() => navigateTo('inbox')} className={linkCls}>Contact Us</button></li>
@@ -82,16 +82,16 @@ export default function Footer({ navigateTo }) {
 
                 {/* App Promo & Socials (Span 3) */}
                 <div className="md:col-span-3">
-                    <h4 className="text-white font-black mb-6 uppercase tracking-widest text-xs">Get the App</h4>
-                    <div className="space-y-3 mb-8">
-                        <button className="w-full bg-stone-900 border border-stone-800 hover:border-emerald-600 rounded-xl p-3 flex items-center justify-center gap-3 transition group">
+                    <h4 className="text-white font-black mb-4 uppercase tracking-widest text-[11px]">Get the App</h4>
+                    <div className="space-y-2 mb-6">
+                        <button className="w-full bg-stone-900 border border-stone-800 hover:border-emerald-600 rounded-lg p-2.5 flex items-center justify-center gap-3 transition group">
                             <Smartphone className="text-white group-hover:text-emerald-500 transition w-5 h-5" />
                             <div className="text-left flex-1">
                                 <div className="text-[10px] text-stone-400 font-bold uppercase tracking-wider mb-0.5">Download on the</div>
                                 <div className="text-white font-bold text-sm leading-none">App Store</div>
                             </div>
                         </button>
-                        <button className="w-full bg-stone-900 border border-stone-800 hover:border-emerald-600 rounded-xl p-3 flex items-center justify-center gap-3 transition group">
+                        <button className="w-full bg-stone-900 border border-stone-800 hover:border-emerald-600 rounded-lg p-2.5 flex items-center justify-center gap-3 transition group">
                             {/* Quick generic android/play icon abstraction since lucide lacks an explicit App/Play store icon */}
                             <svg className="w-5 h-5 text-white group-hover:text-emerald-500 transition" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M17.523 15.3414C17.523 15.3414 16.0354 18.0673 14.1554 18.0673C12.446 18.0673 11.597 16.944 9.17205 16.944C6.70275 16.944 5.61905 18.0673 4.14445 18.0673C2.39695 18.0673 0.224609 13.9392 0.224609 10.3248C0.224609 5.89736 3.02985 3.51866 5.62685 3.51866C7.39765 3.51866 8.52835 4.54226 9.35125 4.54226C10.2201 4.54226 11.5815 3.39966 13.7259 3.39966C14.4921 3.39966 17.6534 3.73836 19.5101 6.37736C19.349 6.47166 17.078 7.74906 17.078 10.511C17.078 13.7745 19.8665 14.8696 19.8665 14.8696C19.8515 14.9224 19.4627 16.2736 17.523 15.3414ZM12.75 1.54326C12.75 1.54326 12.8711 3.42436 11.5173 4.88726C10.2977 6.20456 8.35655 6.13096 8.35655 6.13096C8.35655 6.13096 8.42195 4.31976 9.61335 2.92486C10.8804 1.44476 12.75 1.54326 12.75 1.54326Z" />
@@ -103,8 +103,8 @@ export default function Footer({ navigateTo }) {
                         </button>
                     </div>
 
-                    <h4 className="text-white font-black mb-4 uppercase tracking-widest text-xs">Follow Us</h4>
-                    <div className="flex items-center gap-3">
+                    <h4 className="text-white font-black mb-3 uppercase tracking-widest text-[11px]">Follow Us</h4>
+                    <div className="flex items-center gap-2">
                         {[
                             { icon: Instagram, label: 'Instagram' },
                             { icon: Twitter, label: 'Twitter' },
@@ -114,7 +114,7 @@ export default function Footer({ navigateTo }) {
                             <button
                                 key={label}
                                 aria-label={label}
-                                className="w-10 h-10 rounded-full bg-stone-900 border border-stone-800 flex items-center justify-center text-stone-400 hover:text-white hover:bg-emerald-800 hover:border-emerald-700 transition"
+                                className="w-9 h-9 rounded-full bg-stone-900 border border-stone-800 flex items-center justify-center text-stone-400 hover:text-white hover:bg-emerald-800 hover:border-emerald-700 transition"
                             >
                                 <Icon className="w-4 h-4" />
                             </button>
@@ -124,7 +124,7 @@ export default function Footer({ navigateTo }) {
             </div>
 
             {/* Bottom Bar */}
-            <div className="max-w-7xl mx-auto px-4 border-t border-stone-800/60 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium">
+            <div className="max-w-7xl mx-auto px-4 border-t border-stone-800/60 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium">
                 <p>&copy; {new Date().getFullYear()} Chakabnb. A premium local experience.</p>
                 <div className="flex gap-4">
                     <span className="hover:text-emerald-400 cursor-pointer transition">Privacy Policy</span>
