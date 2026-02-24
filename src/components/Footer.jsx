@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Send } from 'lucide-react';
+import { MapPin, Send, Instagram, Twitter, Linkedin, Facebook, Smartphone } from 'lucide-react';
 
 export default function Footer({ navigateTo }) {
     const [email, setEmail] = useState('');
@@ -10,23 +10,32 @@ export default function Footer({ navigateTo }) {
         if (email.trim()) { setSubscribed(true); setEmail(''); }
     };
 
+    const linkCls = "text-stone-400 hover:text-orange-400 transition cursor-pointer";
+
     return (
-        <footer className="bg-stone-900 text-stone-400 pt-16 pb-32 md:pb-16 border-t-4 border-emerald-900 mt-auto">
-            <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-                <div className="md:col-span-2">
-                    <div className="text-2xl font-black text-white flex items-center gap-2 mb-4 opacity-90">
-                        <MapPin className="text-orange-500" /> Chakabnb
+        <footer className="bg-stone-950 text-stone-400 pt-20 pb-32 md:pb-16 border-t-4 border-emerald-900 mt-auto relative overflow-hidden">
+            {/* Subtle background glow */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-900/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-12 gap-10 mb-16 relative z-10">
+                {/* Brand & Newsletter (Span 5) */}
+                <div className="md:col-span-5">
+                    <div className="text-3xl font-black text-white flex items-center gap-2 mb-6 tracking-tight">
+                        <MapPin className="text-orange-500 w-8 h-8" /> Chakabnb
                     </div>
-                    <p className="text-stone-500 text-sm font-medium max-w-sm mb-6">
+                    <p className="text-stone-400 text-sm font-medium max-w-sm mb-8 leading-relaxed">
                         Connecting you to the beauty of Nyeri County, Kenya. Discover local stays, experiences,
                         and genuine hospitality in Chaka town.
                     </p>
 
                     {/* Newsletter */}
-                    <div>
+                    <div className="bg-stone-900/50 p-6 rounded-2xl border border-stone-800 backdrop-blur-sm">
                         <p className="text-white font-bold text-sm mb-3">Get exclusive deals in your inbox</p>
                         {subscribed ? (
-                            <p className="text-emerald-400 font-medium text-sm">✓ You're subscribed! Welcome to Chakabnb.</p>
+                            <p className="text-emerald-400 font-bold text-sm flex items-center gap-2">
+                                <span className="w-5 h-5 bg-emerald-500/20 text-emerald-400 flex items-center justify-center rounded-full">✓</span>
+                                You're subscribed!
+                            </p>
                         ) : (
                             <form onSubmit={handleSubscribe} className="flex gap-2">
                                 <input
@@ -34,42 +43,94 @@ export default function Footer({ navigateTo }) {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="your@email.com"
-                                    className="flex-1 bg-stone-800 border border-stone-700 rounded-xl px-3 py-2 text-sm text-white placeholder-stone-500 focus:outline-none focus:border-emerald-500 transition min-w-0"
+                                    className="flex-1 bg-stone-950 border border-stone-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-stone-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition min-w-0"
                                 />
                                 <button
                                     type="submit"
-                                    className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-xl transition flex items-center gap-1.5 text-sm font-bold flex-shrink-0"
+                                    className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl transition flex items-center gap-2 text-sm font-bold flex-shrink-0 shadow-lg shadow-orange-600/20"
                                 >
-                                    <Send className="w-3.5 h-3.5" /> Subscribe
+                                    <Send className="w-4 h-4" /> Subscribe
                                 </button>
                             </form>
                         )}
                     </div>
                 </div>
 
-                <div>
-                    <h4 className="text-white font-bold mb-4 uppercase tracking-wider text-sm">Explore</h4>
-                    <ul className="space-y-2 text-sm">
-                        <li><button onClick={() => navigateTo('search')} className="hover:text-orange-400 transition">All Properties</button></li>
-                        <li><span className="hover:text-orange-400 cursor-pointer transition">Ranches &amp; Camps</span></li>
-                        <li><span className="hover:text-orange-400 cursor-pointer transition">Town Apartments</span></li>
-                        <li><span className="hover:text-orange-400 cursor-pointer transition">Wellness Retreats</span></li>
+                {/* Explore Links (Span 2) */}
+                <div className="md:col-span-2 md:col-start-7">
+                    <h4 className="text-white font-black mb-6 uppercase tracking-widest text-xs">Explore</h4>
+                    <ul className="space-y-4 text-sm font-medium">
+                        <li><button onClick={() => navigateTo('search')} className={linkCls}>All Properties</button></li>
+                        <li><span onClick={() => navigateTo('search')} className={linkCls}>Ranches & Camps</span></li>
+                        <li><span onClick={() => navigateTo('search')} className={linkCls}>Town Apartments</span></li>
+                        <li><span onClick={() => navigateTo('search')} className={linkCls}>Wellness Retreats</span></li>
+                        <li><span className={linkCls}>Gift Cards</span></li>
                     </ul>
                 </div>
 
-                <div>
-                    <h4 className="text-white font-bold mb-4 uppercase tracking-wider text-sm">Support</h4>
-                    <ul className="space-y-2 text-sm">
-                        <li><span className="hover:text-orange-400 cursor-pointer transition">Help Center</span></li>
-                        <li><span className="hover:text-orange-400 cursor-pointer transition">Cancellation Options</span></li>
-                        <li><span className="hover:text-orange-400 cursor-pointer transition">Contact Us</span></li>
-                        <li><span className="hover:text-orange-400 cursor-pointer transition">List Your Property</span></li>
+                {/* Support Links (Span 2) */}
+                <div className="md:col-span-2">
+                    <h4 className="text-white font-black mb-6 uppercase tracking-widest text-xs">Support</h4>
+                    <ul className="space-y-4 text-sm font-medium">
+                        <li><span className={linkCls}>Help Center</span></li>
+                        <li><span className={linkCls}>Cancellation Options</span></li>
+                        <li><button onClick={() => navigateTo('inbox')} className={linkCls}>Contact Us</button></li>
+                        <li><button onClick={() => navigateTo('host')} className={linkCls}>List Your Property</button></li>
+                        <li><span className={linkCls}>Trust & Safety</span></li>
                     </ul>
+                </div>
+
+                {/* App Promo & Socials (Span 3) */}
+                <div className="md:col-span-3">
+                    <h4 className="text-white font-black mb-6 uppercase tracking-widest text-xs">Get the App</h4>
+                    <div className="space-y-3 mb-8">
+                        <button className="w-full bg-stone-900 border border-stone-800 hover:border-emerald-600 rounded-xl p-3 flex items-center justify-center gap-3 transition group">
+                            <Smartphone className="text-white group-hover:text-emerald-500 transition w-5 h-5" />
+                            <div className="text-left flex-1">
+                                <div className="text-[10px] text-stone-400 font-bold uppercase tracking-wider mb-0.5">Download on the</div>
+                                <div className="text-white font-bold text-sm leading-none">App Store</div>
+                            </div>
+                        </button>
+                        <button className="w-full bg-stone-900 border border-stone-800 hover:border-emerald-600 rounded-xl p-3 flex items-center justify-center gap-3 transition group">
+                            {/* Quick generic android/play icon abstraction since lucide lacks an explicit App/Play store icon */}
+                            <svg className="w-5 h-5 text-white group-hover:text-emerald-500 transition" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.523 15.3414C17.523 15.3414 16.0354 18.0673 14.1554 18.0673C12.446 18.0673 11.597 16.944 9.17205 16.944C6.70275 16.944 5.61905 18.0673 4.14445 18.0673C2.39695 18.0673 0.224609 13.9392 0.224609 10.3248C0.224609 5.89736 3.02985 3.51866 5.62685 3.51866C7.39765 3.51866 8.52835 4.54226 9.35125 4.54226C10.2201 4.54226 11.5815 3.39966 13.7259 3.39966C14.4921 3.39966 17.6534 3.73836 19.5101 6.37736C19.349 6.47166 17.078 7.74906 17.078 10.511C17.078 13.7745 19.8665 14.8696 19.8665 14.8696C19.8515 14.9224 19.4627 16.2736 17.523 15.3414ZM12.75 1.54326C12.75 1.54326 12.8711 3.42436 11.5173 4.88726C10.2977 6.20456 8.35655 6.13096 8.35655 6.13096C8.35655 6.13096 8.42195 4.31976 9.61335 2.92486C10.8804 1.44476 12.75 1.54326 12.75 1.54326Z" />
+                            </svg>
+                            <div className="text-left flex-1">
+                                <div className="text-[10px] text-stone-400 font-bold uppercase tracking-wider mb-0.5">Get it on</div>
+                                <div className="text-white font-bold text-sm leading-none">Google Play</div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <h4 className="text-white font-black mb-4 uppercase tracking-widest text-xs">Follow Us</h4>
+                    <div className="flex items-center gap-3">
+                        {[
+                            { icon: Instagram, label: 'Instagram' },
+                            { icon: Twitter, label: 'Twitter' },
+                            { icon: Facebook, label: 'Facebook' },
+                            { icon: Linkedin, label: 'LinkedIn' },
+                        ].map(({ icon: Icon, label }) => (
+                            <button
+                                key={label}
+                                aria-label={label}
+                                className="w-10 h-10 rounded-full bg-stone-900 border border-stone-800 flex items-center justify-center text-stone-400 hover:text-white hover:bg-emerald-800 hover:border-emerald-700 transition"
+                            >
+                                <Icon className="w-4 h-4" />
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 text-center border-t border-stone-800 pt-8 text-sm">
-                <p>Copyright &copy; 2026 Chakabnb. A premium local experience.</p>
+            {/* Bottom Bar */}
+            <div className="max-w-7xl mx-auto px-4 border-t border-stone-800/60 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium">
+                <p>&copy; {new Date().getFullYear()} Chakabnb. A premium local experience.</p>
+                <div className="flex gap-4">
+                    <span className="hover:text-emerald-400 cursor-pointer transition">Privacy Policy</span>
+                    <span className="hover:text-emerald-400 cursor-pointer transition">Terms of Service</span>
+                    <span className="hover:text-emerald-400 cursor-pointer transition">Sitemap</span>
+                </div>
             </div>
         </footer>
     );
