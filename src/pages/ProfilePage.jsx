@@ -78,13 +78,13 @@ export default function ProfilePage({ navigateTo, initialTab = 'trips', myBookin
             <div className="animate-in fade-in duration-300 bg-stone-50 min-h-[70vh] pb-20">
                 {/* Profile Header */}
                 <div className="bg-emerald-950 pt-12 pb-24 px-4 border-b border-emerald-900">
-                    <div className="max-w-5xl mx-auto flex items-center gap-6">
-                        <div className="w-24 h-24 bg-orange-500 rounded-full flex items-center justify-center text-white text-4xl font-black border-4 border-white/20 shadow-xl">
+                    <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6">
+                        <div className="w-24 h-24 bg-orange-500 rounded-full flex items-center justify-center text-white text-4xl font-black border-4 border-white/20 shadow-xl shrink-0">
                             {displayInitials}
                         </div>
                         <div>
-                            <h1 className="text-3xl md:text-4xl font-black text-white mb-2">Hello, {displayName}</h1>
-                            <p className="text-emerald-100 font-medium">{displayEmail} • Chaka Explorer</p>
+                            <h1 className="text-3xl md:text-4xl font-black text-white mb-2 break-all md:break-normal">Hello, {displayName}</h1>
+                            <p className="text-emerald-100 font-medium break-all md:break-normal">{displayEmail} • Chaka Explorer</p>
                         </div>
                     </div>
                 </div>
