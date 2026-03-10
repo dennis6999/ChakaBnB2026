@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Search, User, Home, Heart, History, LogIn, PlusCircle, MessageCircle } from 'lucide-react';
+import { MapPin, Search, User, Home, Heart, History, LogIn, MessageCircle } from 'lucide-react';
 
 /**
  * Mobile-aware Navbar with fixed bottom navigation for small screens.
@@ -93,80 +93,69 @@ export default function Navbar({ navigateTo, bookingCount, hostBookingCount = 0,
                 </div>
             </nav>
 
-            {/* Mobile Bottom Navigation Bar - Fixed */}
+            {/* Mobile Bottom Navigation Bar - Fixed (5 tabs max, like Airbnb) */}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 z-50 px-2 pb-safe pt-2 shadow-2xl flex justify-around items-center h-[72px]">
-                <button
-                    onClick={() => go('search')}
-                    className="flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
-                >
-                    <Search className="w-6 h-6 mb-1" />
-                    <span className="text-[10px] font-bold">Explore</span>
-                </button>
+                {(() => {
+                    const path = window.location.pathname;
+                    const isActive = (route) => path === route || (route === '/' && path === '/');
+                    const tabClass = (route) => `flex flex-col items-center justify-center w-14 h-12 transition ${isActive(route) ? 'text-emerald-700' : 'text-stone-400'}`;
 
-                <button
-                    onClick={() => go('profile', null, 'saved')}
-                    className="flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
-                >
-                    <Heart className="w-6 h-6 mb-1" />
-                    <span className="text-[10px] font-bold">Saved</span>
-                </button>
+                    return (
+                        <>
+                            <button onClick={() => go('search')} className={tabClass('/search')}>
+                                <Search className="w-6 h-6 mb-0.5" />
+                                <span className="text-[10px] font-bold">Explore</span>
+                            </button>
 
-                {user && (
-                    <button
-                        onClick={() => go('host')}
-                        className="relative flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
-                    >
-                        <PlusCircle className="w-6 h-6 mb-1" />
-                        <span className="text-[10px] font-bold">Host</span>
-                        {hostBookingCount > 0 && (
-                            <span className="absolute top-0 right-2 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full border border-white">
-                                {hostBookingCount}
-                            </span>
-                        )}
-                    </button>
-                )}
+                            <button onClick={() => go('profile', null, 'saved')} className={tabClass('/saved')}>
+                                <Heart className="w-6 h-6 mb-0.5" />
+                                <span className="text-[10px] font-bold">Saved</span>
+                            </button>
 
-                {user && (
-                    <button
-                        onClick={() => go('inbox')}
-                        className="relative flex flex-col items-center justify-center w-12 h-12 text-stone-500 hover:text-emerald-700 transition"
-                    >
-                        <MessageCircle className="w-6 h-6 mb-1" />
-                        <span className="text-[10px] font-bold">Inbox</span>
-                        {unreadMessageCount > 0 && (
-                            <span className="absolute top-0 right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full border border-white font-bold leading-none">
-                                {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
-                            </span>
-                        )}
-                    </button>
-                )}
+                            {user && (
+                                <button
+                                    onClick={() => go('inbox')}
+                                    className={`relative ${tabClass('/inbox')}`}
+                                >
+                                    <MessageCircle className="w-6 h-6 mb-0.5" />
+                                    <span className="text-[10px] font-bold">Inbox</span>
+                                    {unreadMessageCount > 0 && (
+                                        <span className="absolute top-0 right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full border border-white font-bold leading-none">
+                                            {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+                                        </span>
+                                    )}
+                                </button>
+                            )}
 
-                <button
-                    onClick={() => go('profile', null, 'trips')}
-                    className="relative flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
-                >
-                    <History className="w-6 h-6 mb-1" />
-                    <span className="text-[10px] font-bold">Trips</span>
-                    {bookingCount > 0 && (
-                        <span className="absolute top-0 right-2 bg-orange-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full border border-white">
-                            {bookingCount}
-                        </span>
-                    )}
-                </button>
+                            <button
+                                onClick={() => go('profile', null, 'trips')}
+                                className={`relative ${tabClass('/profile')}`}
+                            >
+                                <History className="w-6 h-6 mb-0.5" />
+                                <span className="text-[10px] font-bold">Trips</span>
+                                {bookingCount > 0 && (
+                                    <span className="absolute top-0 right-2 bg-orange-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full border border-white">
+                                        {bookingCount}
+                                    </span>
+                                )}
+                            </button>
 
-                <button
-                    onClick={() => user ? go('profile', null, 'account') : onAuthClick()}
-                    className="flex flex-col items-center justify-center w-14 h-12 text-stone-500 hover:text-emerald-700 transition"
-                >
-                    {user ? (
-                        <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-[10px] font-black mb-1">
-                            {user.initials}
-                        </div>
-                    ) : (
-                        <User className="w-6 h-6 mb-1" />
-                    )}
-                    <span className="text-[10px] font-bold">{user ? 'Profile' : 'Log in'}</span>
-                </button>
+                            <button
+                                onClick={() => user ? go('profile', null, 'account') : onAuthClick()}
+                                className={tabClass(user ? '/profile' : '/signin')}
+                            >
+                                {user ? (
+                                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-[10px] font-black mb-0.5">
+                                        {user.initials}
+                                    </div>
+                                ) : (
+                                    <User className="w-6 h-6 mb-0.5" />
+                                )}
+                                <span className="text-[10px] font-bold">{user ? 'Profile' : 'Log in'}</span>
+                            </button>
+                        </>
+                    );
+                })()}
             </nav>
         </>
     );

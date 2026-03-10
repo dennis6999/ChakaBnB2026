@@ -746,7 +746,40 @@ function PropertyFormModal({ user, editProperty, showAlert, onClose, onSuccess }
     const [saving, setSaving] = useState(false);
     const [step, setStep] = useState(1);
     const [mainImageFile, setMainImageFile] = useState(null);
+    const [mainImagePreview, setMainImagePreview] = useState(null);
     const [galleryFiles, setGalleryFiles] = useState([]);
+    const [galleryPreviews, setGalleryPreviews] = useState([]);
+
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+    const validateImage = (file) => {
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            showAlert(`"${file.name}" is not supported. Use JPEG, PNG, or WebP.`);
+            return false;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+            showAlert(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 5MB.`);
+            return false;
+        }
+        return true;
+    };
+
+    const handleMainImage = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!validateImage(file)) { e.target.value = ''; return; }
+        setMainImageFile(file);
+        setMainImagePreview(URL.createObjectURL(file));
+    };
+
+    const handleGalleryImages = (e) => {
+        const files = [...e.target.files].slice(0, 4);
+        const valid = files.filter(f => validateImage(f));
+        if (valid.length === 0) { e.target.value = ''; return; }
+        setGalleryFiles(valid);
+        setGalleryPreviews(valid.map(f => URL.createObjectURL(f)));
+    };
 
     // Form State
     const [form, setForm] = useState(() => {
@@ -978,13 +1011,17 @@ function PropertyFormModal({ user, editProperty, showAlert, onClose, onSuccess }
                             <div>
                                 <label className="block text-sm font-bold text-stone-700 mb-2">Main Cover Image {isEdit ? '' : <span className="text-red-500">*</span>}</label>
                                 <div className="border-2 border-dashed border-stone-300 rounded-2xl p-6 flex flex-col items-center justify-center bg-stone-50 hover:bg-stone-100 transition cursor-pointer relative overflow-hidden">
-                                    <input required={!isEdit} type="file" accept="image/*" onChange={e => setMainImageFile(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                    {mainImageFile ? (
-                                        <p className="font-bold text-emerald-700 text-center">{mainImageFile.name}</p>
+                                    <input required={!isEdit} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleMainImage} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                    {mainImagePreview ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <img src={mainImagePreview} alt="Preview" className="w-full max-h-40 object-cover rounded-xl" />
+                                            <p className="text-xs font-bold text-emerald-700">{mainImageFile.name} ({(mainImageFile.size / 1024 / 1024).toFixed(1)}MB)</p>
+                                        </div>
                                     ) : (
                                         <>
                                             <UploadCloud className="w-8 h-8 text-stone-400 mb-2" />
                                             <p className="text-sm font-medium text-stone-500">{isEdit ? '(Optional) Select new cover image' : 'Click to upload or drag and drop'}</p>
+                                            <p className="text-xs text-stone-400 mt-1">JPEG, PNG or WebP • Max 5MB</p>
                                         </>
                                     )}
                                 </div>
@@ -996,13 +1033,21 @@ function PropertyFormModal({ user, editProperty, showAlert, onClose, onSuccess }
                             <div>
                                 <label className="block text-sm font-bold text-stone-700 mb-2">Additional Gallery Images (up to 4)</label>
                                 <div className="border-2 border-dashed border-stone-300 rounded-2xl p-6 flex flex-col items-center justify-center bg-stone-50 hover:bg-stone-100 transition cursor-pointer relative overflow-hidden">
-                                    <input type="file" multiple accept="image/*" onChange={e => setGalleryFiles([...e.target.files].slice(0, 4))} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                    {galleryFiles.length > 0 ? (
-                                        <p className="font-bold text-emerald-700 text-center">{galleryFiles.length} files selected</p>
+                                    <input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={handleGalleryImages} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                    {galleryPreviews.length > 0 ? (
+                                        <div className="w-full">
+                                            <div className="grid grid-cols-4 gap-2 mb-2">
+                                                {galleryPreviews.map((src, i) => (
+                                                    <img key={i} src={src} alt={`Gallery ${i+1}`} className="w-full aspect-square object-cover rounded-lg" />
+                                                ))}
+                                            </div>
+                                            <p className="text-xs font-bold text-emerald-700 text-center">{galleryFiles.length} file{galleryFiles.length > 1 ? 's' : ''} selected</p>
+                                        </div>
                                     ) : (
                                         <>
                                             <UploadCloud className="w-8 h-8 text-stone-400 mb-2" />
                                             <p className="text-sm font-medium text-stone-500">Select multiple images</p>
+                                            <p className="text-xs text-stone-400 mt-1">JPEG, PNG or WebP • Max 5MB each</p>
                                         </>
                                     )}
                                 </div>

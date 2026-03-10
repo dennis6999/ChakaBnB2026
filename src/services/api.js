@@ -5,12 +5,33 @@ export const api = {
 
     // Fetch all properties
     getProperties: async () => {
-        const { data, error } = await supabase.from('properties').select('*').eq('is_active', true);
+        const { data, error } = await supabase
+            .from('properties')
+            .select('*')
+            .eq('is_active', true)
+            .not('host_id', 'is', null);
         if (error) {
             console.error("Error fetching properties:", error);
             throw error;
         }
         return data;
+    },
+
+    // Fetch properties with pagination (Load More)
+    getPropertiesPaginated: async (page = 0, pageSize = 12) => {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+        const { data, error, count } = await supabase
+            .from('properties')
+            .select('*', { count: 'exact' })
+            .eq('is_active', true)
+            .not('host_id', 'is', null)
+            .range(from, to);
+        if (error) {
+            console.error("Error fetching paginated properties:", error);
+            throw error;
+        }
+        return { data: data || [], total: count || 0, hasMore: (to + 1) < (count || 0) };
     },
 
     // Fetch a single property by ID
@@ -27,13 +48,19 @@ export const api = {
             .select('*')
             .neq('id', id)
             .eq('type', type)
+            .not('host_id', 'is', null)
             .limit(3);
 
         if (error) throw error;
 
         // Fallback if not enough similar type
         if (!data || data.length === 0) {
-            const fallback = await supabase.from('properties').select('*').neq('id', id).limit(3);
+            const fallback = await supabase
+                .from('properties')
+                .select('*')
+                .neq('id', id)
+                .not('host_id', 'is', null)
+                .limit(3);
             return fallback.data || [];
         }
         return data;

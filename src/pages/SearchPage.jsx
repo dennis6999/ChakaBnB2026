@@ -25,6 +25,10 @@ export default function SearchPage({
     const [properties, setProperties] = useState([]);
     const [initialLoading, setInitialLoading] = useState(true);
     const [filterLoading, setFilterLoading] = useState(false);
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(false);
+    const [totalCount, setTotalCount] = useState(0);
+    const [loadingMore, setLoadingMore] = useState(false);
 
     const [displayMode, setDisplayMode] = useState('list');
     const [showFilters, setShowFilters] = useState(false);
@@ -34,13 +38,16 @@ export default function SearchPage({
     const [mapBounds, setMapBounds] = useState(null);
     const [searchAsMoveMap, setSearchAsMoveMap] = useState(false);
 
-    // Fetch initial data
+    // Fetch initial data with pagination
     useEffect(() => {
         const fetchAll = async () => {
             setInitialLoading(true);
             try {
-                const data = await api.getProperties();
-                setProperties(data);
+                const result = await api.getPropertiesPaginated(0, 12);
+                setProperties(result.data);
+                setHasMore(result.hasMore);
+                setTotalCount(result.total);
+                setPage(0);
             } catch (err) {
                 console.error("Failed to fetch properties:", err);
             } finally {
@@ -49,6 +56,21 @@ export default function SearchPage({
         };
         fetchAll();
     }, []);
+
+    const loadMore = async () => {
+        const nextPage = page + 1;
+        setLoadingMore(true);
+        try {
+            const result = await api.getPropertiesPaginated(nextPage, 12);
+            setProperties(prev => [...prev, ...result.data]);
+            setHasMore(result.hasMore);
+            setPage(nextPage);
+        } catch (err) {
+            console.error("Failed to load more:", err);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
 
     // Simulate loading when filters change (for UX polish as requested)
     useEffect(() => {
@@ -416,6 +438,7 @@ export default function SearchPage({
                                     </button>
                                 </div>
                             ) : (
+                                <>
                                 <div className={displayMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'space-y-6'}>
                                     {filtered.map(property => (
                                         <PropertyCard
@@ -429,6 +452,19 @@ export default function SearchPage({
                                         />
                                     ))}
                                 </div>
+                                {/* Load More Button */}
+                                {hasMore && (
+                                    <div className="text-center mt-8">
+                                        <button
+                                            onClick={loadMore}
+                                            disabled={loadingMore}
+                                            className="bg-emerald-900 text-white font-bold px-8 py-3.5 rounded-xl shadow-md hover:bg-emerald-800 active:scale-95 transition disabled:opacity-50 disabled:cursor-wait"
+                                        >
+                                            {loadingMore ? 'Loading...' : `Load More (${properties.length} of ${totalCount})`}
+                                        </button>
+                                    </div>
+                                )}
+                                </>
                             )}
                         </div>
                     </div>

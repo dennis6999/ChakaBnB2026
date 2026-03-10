@@ -178,25 +178,49 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                 </div>
 
                 {/* Desktop Gallery */}
-                <div className="hidden md:grid grid-cols-4 gap-3 mb-12 h-[60vh] rounded-3xl overflow-hidden shadow-lg border border-stone-200">
-                    <div className="col-span-2 row-span-2 relative group cursor-pointer" onClick={() => openLightbox(0)}>
-                        <img src={property.gallery?.[0] || property.image} alt="Main" className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
-                    </div>
-                    {[1, 2].map((i) => (
-                        <div key={i} className="relative group overflow-hidden cursor-pointer" onClick={() => openLightbox(i)}>
-                            <img src={property.gallery?.[i] || property.image} alt={`Gallery ${i}`} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
+                {(() => {
+                    const imgs = property.gallery?.length > 0 ? property.gallery : [property.image];
+                    const count = imgs.length;
+                    if (count === 1) {
+                        return (
+                            <div className="hidden md:block mb-12 aspect-[21/9] rounded-3xl overflow-hidden shadow-lg border border-stone-200 cursor-pointer group" onClick={() => openLightbox(0)}>
+                                <img src={imgs[0]} alt="Main" className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
+                            </div>
+                        );
+                    }
+                    if (count === 2) {
+                        return (
+                            <div className="hidden md:grid grid-cols-2 gap-3 mb-12 h-[50vh] rounded-3xl overflow-hidden shadow-lg border border-stone-200">
+                                {imgs.map((img, i) => (
+                                    <div key={i} className="relative group overflow-hidden cursor-pointer" onClick={() => openLightbox(i)}>
+                                        <img src={img} alt={`Gallery ${i}`} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    }
+                    return (
+                        <div className="hidden md:grid grid-cols-4 gap-3 mb-12 h-[60vh] rounded-3xl overflow-hidden shadow-lg border border-stone-200">
+                            <div className="col-span-2 row-span-2 relative group cursor-pointer" onClick={() => openLightbox(0)}>
+                                <img src={imgs[0]} alt="Main" className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
+                            </div>
+                            {[1, 2].map((i) => (
+                                <div key={i} className="relative group overflow-hidden cursor-pointer" onClick={() => openLightbox(i)}>
+                                    <img src={imgs[i] || imgs[0]} alt={`Gallery ${i}`} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
+                                </div>
+                            ))}
+                            <div
+                                className="flex col-span-2 relative group overflow-hidden bg-emerald-900 items-center justify-center cursor-pointer"
+                                onClick={() => openLightbox(3)}
+                            >
+                                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition" />
+                                <span className="relative text-white font-bold text-lg flex items-center gap-2">
+                                    View all photos ({count}) <ChevronRight />
+                                </span>
+                            </div>
                         </div>
-                    ))}
-                    <div
-                        className="flex col-span-2 relative group overflow-hidden bg-emerald-900 items-center justify-center cursor-pointer"
-                        onClick={() => openLightbox(3)}
-                    >
-                        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition" />
-                        <span className="relative text-white font-bold text-lg flex items-center gap-2">
-                            View all photos ({property.gallery?.length || 1}) <ChevronRight />
-                        </span>
-                    </div>
-                </div>
+                    );
+                })()}
 
                 {/* Mobile Gallery (Carousel) */}
                 <div className="md:hidden flex overflow-x-auto snap-x snap-mandatory gap-2 mb-8 -mx-4 px-4 scrollbar-hide">
@@ -225,18 +249,16 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                             </div>
                         </div>
 
-                        {/* Booking.com Policies */}
-                        <div className="mb-8 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col gap-2">
-                            <div className="flex items-center gap-2 text-emerald-800 font-bold">
-                                <Check className="w-5 h-5" /> {property.cancellationPolicy}
+                        {/* Property Policies */}
+                        {[property.cancellationPolicy, property.mealPlan, property.paymentPreference].filter(Boolean).length > 0 && (
+                            <div className="mb-8 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col gap-2">
+                                {[property.cancellationPolicy, property.mealPlan, property.paymentPreference].filter(Boolean).map((policy) => (
+                                    <div key={policy} className="flex items-center gap-2 text-emerald-800 font-bold">
+                                        <Check className="w-5 h-5" /> {policy}
+                                    </div>
+                                ))}
                             </div>
-                            <div className="flex items-center gap-2 text-emerald-800 font-bold">
-                                <Check className="w-5 h-5" /> {property.mealPlan}
-                            </div>
-                            <div className="flex items-center gap-2 text-emerald-800 font-bold">
-                                <Check className="w-5 h-5" /> {property.paymentPreference}
-                            </div>
-                        </div>
+                        )}
 
                         <div className="mb-12">
                             <h3 className="text-xl font-bold text-stone-900 mb-4">About this place</h3>
@@ -264,17 +286,29 @@ export default function PropertyPage({ property, isFavorite, onToggleFavorite, o
                             </h3>
 
                             {/* Summary score */}
-                            <div className="bg-stone-100 rounded-3xl p-6 border border-stone-200 mb-6 flex items-center gap-4">
-                                <div className="bg-emerald-900 text-white font-black text-4xl px-5 py-3 rounded-2xl shadow">
-                                    {property.rating?.toFixed(1)}
-                                </div>
-                                <div>
-                                    <div className="text-xl font-bold text-stone-900">
-                                        {property.rating >= 9 ? 'Exceptional' : property.rating >= 8 ? 'Wonderful' : property.rating >= 7 ? 'Good' : 'Okay'}
+                            {property.rating > 0 ? (
+                                <div className="bg-stone-100 rounded-3xl p-6 border border-stone-200 mb-6 flex items-center gap-4">
+                                    <div className="bg-emerald-900 text-white font-black text-4xl px-5 py-3 rounded-2xl shadow">
+                                        {property.rating?.toFixed(1)}
                                     </div>
-                                    <div className="text-stone-500 font-medium">{reviews.length} verified review{reviews.length !== 1 ? 's' : ''}</div>
+                                    <div>
+                                        <div className="text-xl font-bold text-stone-900">
+                                            {property.rating >= 9 ? 'Exceptional' : property.rating >= 8 ? 'Wonderful' : property.rating >= 7 ? 'Good' : 'Okay'}
+                                        </div>
+                                        <div className="text-stone-500 font-medium">{reviews.length} verified review{reviews.length !== 1 ? 's' : ''}</div>
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="bg-orange-50 rounded-3xl p-6 border border-orange-100 mb-6 flex items-center gap-4">
+                                    <div className="bg-orange-100 text-orange-700 font-black text-xl px-5 py-3 rounded-2xl">
+                                        New
+                                    </div>
+                                    <div>
+                                        <div className="text-xl font-bold text-stone-900">Be the first to review!</div>
+                                        <div className="text-stone-500 font-medium">No reviews yet for this property</div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Individual review cards */}
                             {loadingDetails ? (
