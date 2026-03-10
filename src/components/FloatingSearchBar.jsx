@@ -162,7 +162,7 @@ export default function FloatingSearchBar({ onSearch }) {
                 <div className="px-3 py-3 flex-shrink-0">
                     <button
                         onClick={handleSearch}
-                        className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-6 rounded-2xl transition shadow-lg shadow-orange-600/25 flex items-center gap-2 w-full md:w-auto justify-center"
+                        className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-6 rounded-xl transition shadow-lg shadow-orange-600/25 flex items-center gap-2 w-full md:w-auto justify-center"
                     >
                         <Search className="w-5 h-5" /> Search
                     </button>

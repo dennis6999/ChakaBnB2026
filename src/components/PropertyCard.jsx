@@ -18,7 +18,7 @@ export default function PropertyCard({
             <div className="bg-white border border-stone-200 rounded-3xl p-4 flex flex-col md:flex-row gap-6 shadow-sm hover:shadow-xl transition-all duration-300 group">
                 {/* Image */}
                 <div
-                    className="w-full md:w-72 h-64 md:h-auto flex-shrink-0 relative cursor-pointer overflow-hidden rounded-2xl"
+                    className="w-full md:w-72 h-64 md:h-64 flex-shrink-0 relative cursor-pointer overflow-hidden rounded-2xl"
                     onClick={() => onNavigate(property.id)}
                 >
                     <img
@@ -64,11 +64,17 @@ export default function PropertyCard({
                             </div>
 
                             <div className="flex flex-col items-end">
-                                <div className="bg-emerald-900 text-white font-black text-lg px-3 py-1 rounded-xl shadow-sm mb-1">
-                                    {property.rating.toFixed(1)}
-                                </div>
+                                {property.rating > 0 ? (
+                                    <div className="bg-emerald-900 text-white font-black text-lg px-3 py-1 rounded-xl shadow-sm mb-1">
+                                        {property.rating.toFixed(1)}
+                                    </div>
+                                ) : (
+                                    <div className="bg-orange-100 text-orange-700 font-black text-sm px-3 py-1 rounded-xl mb-1">
+                                        New
+                                    </div>
+                                )}
                                 <span className="font-bold text-stone-900 text-sm">{property.reviewText}</span>
-                                <span className="text-xs text-stone-500">{property.reviews} reviews</span>
+                                <span className="text-xs text-stone-500">{property.reviews > 0 ? `${property.reviews} reviews` : 'No reviews yet'}</span>
                             </div>
                         </div>
 
@@ -114,7 +120,7 @@ export default function PropertyCard({
     // Default: grid card (used on HomePage featured section)
     return (
         <div className="bg-white border border-stone-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer flex flex-col">
-            <div className="relative h-64 overflow-hidden" onClick={() => onNavigate(property.id)}>
+            <div className="relative aspect-[4/3] overflow-hidden" onClick={() => onNavigate(property.id)}>
                 <img
                     src={property.image}
                     alt={`Photo of ${property.name}`}
@@ -137,9 +143,15 @@ export default function PropertyCard({
                     <h3 className="text-xl font-black text-stone-900 leading-tight group-hover:text-orange-600 transition">
                         {property.name}
                     </h3>
-                    <div className="flex items-center gap-1 bg-emerald-900 text-white px-2 py-1 rounded-lg text-sm font-bold shadow-sm">
-                        <Star className="w-3.5 h-3.5 fill-current" /> {property.rating.toFixed(1)}
-                    </div>
+                    {property.rating > 0 ? (
+                        <div className="flex items-center gap-1 bg-emerald-900 text-white px-2 py-1 rounded-lg text-sm font-bold shadow-sm">
+                            <Star className="w-3.5 h-3.5 fill-current" /> {property.rating.toFixed(1)}
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-lg text-sm font-bold">
+                            New
+                        </div>
+                    )}
                 </div>
                 <p className="text-sm text-stone-500 flex items-center gap-1 mb-4">
                     <MapPin className="w-4 h-4 text-emerald-600" /> {property.distance}

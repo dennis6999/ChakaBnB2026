@@ -34,7 +34,7 @@ export default function HomePage({ navigateTo, favorites, toggleFavorite, setFil
         <div className="animate-in fade-in duration-500 pb-16">
             {/* Hero */}
             <div
-                className="relative pb-32 pt-24 px-4 bg-cover bg-center"
+                className="relative pb-32 pt-16 sm:pt-24 px-4 bg-cover bg-center"
                 style={{
                     backgroundImage:
                         "url('https://images.unsplash.com/photo-1547471080-7cb2cb6a5a36?auto=format&fit=crop&w=1920&q=80')",
@@ -42,14 +42,14 @@ export default function HomePage({ navigateTo, favorites, toggleFavorite, setFil
             >
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-950/95 via-emerald-900/80 to-transparent" />
                 <div className="relative max-w-7xl mx-auto z-10 flex flex-col items-start">
-                    <span className="bg-orange-600/20 text-orange-300 border border-orange-500/30 text-xs font-bold uppercase tracking-wider py-1.5 px-4 rounded-full mb-6 flex items-center gap-2 backdrop-blur-sm">
+                    <span className="bg-orange-600/20 text-orange-300 border border-orange-500/30 text-xs font-bold uppercase tracking-wider py-1.5 px-4 rounded-full mb-4 sm:mb-6 flex items-center gap-2 backdrop-blur-sm">
                         <Star className="w-3.5 h-3.5 fill-current" /> Premium Stays in Nyeri
                     </span>
-                    <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-6 leading-[1.1] max-w-2xl tracking-tight">
+                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-white mb-4 sm:mb-6 leading-[1.1] max-w-2xl tracking-tight">
                         Escape to the <br />
                         <span className="text-orange-400">Heart of Kenya.</span>
                     </h1>
-                    <p className="text-lg md:text-xl text-stone-200 mb-10 max-w-xl font-light leading-relaxed">
+                    <p className="text-base sm:text-lg md:text-xl text-stone-200 mb-6 sm:mb-10 max-w-xs sm:max-w-xl font-light leading-relaxed">
                         Discover serene ranches, luxurious resorts, and cozy retreats tucked away in the beautiful
                         landscapes of Chaka town.
                     </p>
